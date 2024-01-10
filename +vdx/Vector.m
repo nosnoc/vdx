@@ -8,6 +8,10 @@ classdef Vector < handle &...
         lb
         ub
         init
+        % Default values for bounds and init
+        default_lb
+        default_ub
+        default_init
     end
     properties (Access=private)
         % pointer to parent problem
@@ -18,9 +22,21 @@ classdef Vector < handle &...
     end
 
     methods (Access=public)
-        function obj = Vector(problem)
+        function obj = Vector(problem, varargin)
+            p = inputParser;
+            addRequired(p, 'problem');
+            addOptional(p, 'lb', -inf);
+            addOptional(p, 'ub', inf);
+            addOptional(p, 'init', 0);
+            parse(p, problem, varargin{:});
+            
             obj.problem = problem;
             obj.variables = struct;
+
+            % Populate defaults
+            obj.default_lb = p.Results.lb;
+            obj.default_ub = p.Results.ub;
+            obj.default_init = p.Results.init;
 
             % TODO(@anton) How we handle MX and SX should possibly be decided here in a smarter way,
             %              maybe as a flag to the constructor
@@ -54,27 +70,27 @@ classdef Vector < handle &...
             % Handle non-symbolic input as (name, size) pair
             if iscell(symbolic)
                 name = symbolic{1};
-                length = symbolic{2};
+                len = symbolic{2};
 
-                symbolic = define_casadi_symbolic(class(obj.w), name, length);
+                symbolic = define_casadi_symbolic(class(obj.w), name, len);
             end
 
             % Get size and populate possibly empty values
             n = size(symbolic, 1);
             if isempty(lb)
-                lb = -inf*ones(n,1);
+                lb = obj.default_lb*ones(n,1);
             elseif length(lb) == 1
                 lb = lb*ones(n,1);
             end
             
             if isempty(ub)
-                ub = inf*ones(n,1);
+                ub = obj.default_ub*ones(n,1);
             elseif length(ub) == 1
                 ub = ub*ones(n,1);
             end
 
             if isempty(initial)
-                initial = zeros(n,1);
+                initial = obj.default_init*ones(n,1);
             elseif length(initial) == 1
                 initial = initial*ones(n,1);
             end

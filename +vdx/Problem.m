@@ -17,9 +17,9 @@ classdef Problem < handle
 
     methods (Access=public)
         function obj = Problem()
-            obj.w = vdx.Vector(obj);
-            obj.p = vdx.Vector(obj);
-            obj.g = vdx.Vector(obj);
+            obj.w = vdx.Vector(obj, -inf, inf, 0);
+            obj.p = vdx.Vector(obj, -inf, inf, 0);
+            obj.g = vdx.Vector(obj, 0, 0, 0);
             obj.f = 0;
         end
     end
