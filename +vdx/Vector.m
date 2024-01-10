@@ -28,6 +28,11 @@ classdef Vector < handle &...
             obj.lb = [];
             obj.ub = [];
             obj.init = [];
+
+            % TODO(@anton) We may want to help developers by letting them provide input for
+            %              different vectors when it comes to what the lb, ub, and init defaults are.
+            %              For example we may want lb=0, ub=0 by default for constraint vectors but we also want
+            %              for primal vectors default to be lb=-inf, ub=inf.
         end
         
         function indices = add_variable(obj, symbolic, varargin)
@@ -57,7 +62,7 @@ classdef Vector < handle &...
             % Get size and populate possibly empty values
             n = size(symbolic, 1);
             if isempty(lb)
-                lb = zeros(n,1);
+                lb = -inf*ones(n,1);
             elseif length(lb) == 1
                 lb = lb*ones(n,1);
             end
@@ -106,9 +111,9 @@ classdef Vector < handle &...
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
             if ~isfield(obj.variables, name)
-                obj.constraints.(name) = vdx.Variable(obj,[]); % TODO(@anton) rename this. Talk to Armin.
+                obj.variables.(name) = vdx.Variable(obj,[]); % TODO(@anton) rename this. Talk to Armin.
             end
-            varargout{1} = obj.constraints.(index_op);
+            varargout{1} = obj.variables.(index_op);
         end
 
         function obj = dotAssign(obj,index_op,varargin)

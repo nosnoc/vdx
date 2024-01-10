@@ -34,19 +34,35 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
                 % TODO(@anton) Decide whether we squeeze, or concatenate with sorted indices.
                 %              This is in my opinion purely a decision that should be made and stuck to.
                 symbolics = cellfun(@(x) obj.vector.w(x), obj.indices, 'uni', false);
-                out = squeeze(symbolics.(index_op));
-                if isscalar(out)
-                    varargout{1} = out{1};
-                else
-                    varargout{1} = out;
-                end
+                adj_ind = index_adjustment(index_op.Indices);
+                out = squeeze(symbolics(adj_ind{:}));
             else
                 if index_op(2).Type == 'Dot'
-                    
+                    switch(index_op(2).Name)
+                      case "lb"
+                        lb = cellfun(@(x) obj.vector.lb(x), obj.indices, 'uni', false);
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        out = squeeze(lb(adj_ind{:}));
+                      case "ub"
+                        ub = cellfun(@(x) obj.vector.ub(x), obj.indices, 'uni', false);
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        out = squeeze(ub(adj_ind{:}));
+                      case "init"
+                        init = cellfun(@(x) obj.vector.init(x), obj.indices, 'uni', false);
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        out = squeeze(init(adj_ind{:}));
+                      otherwise
+                        error('vdx only supports getting lb, ub, or init for a variable via dot indexing');
+                    end
                 else
                     error('unsupported indexing');
                     % TODO(@anton) better error here.
                 end
+            end
+            if isscalar(out)
+                varargout{1} = out{1};
+            else
+                varargout{1} = out;
             end
         end
 
@@ -55,12 +71,34 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
                 % get the cell array of args (x,x0,lbx,ubx)
                 arg = varargin{1};
                 indices = obj.vector.add_variable(arg{:});
-                obj.indices{index_op.Indices{:}} = indices;
+                adj_ind = index_adjustment(index_op.Indices);
+                obj.indices{adj_ind{:}} = indices;
             else
-                % TODO(anton) this can acually be used to allow mpcc.x(1,1).lb = lbx
-                %             which is awesome syntactic sugar!
-                error("Chained indexing not supported for NosnocVariable")
+                if index_op(2).Type == 'Dot'
+                    if all(cellfun(@(x) isscalar(x) & ~ischar(x), index_op(1).Indices))
+                        switch(index_op(2).Name)
+                          case "lb"
+                            adj_ind = index_adjustment(index_op(1).Indices);
+                            obj.vector.lb(obj.indices{adj_ind{1}}) = varargin{1};
+                          case "ub"
+                            adj_ind = index_adjustment(index_op(1).Indices);
+                            obj.vector.ub(obj.indices{adj_ind{1}}) = varargin{1};
+                          case "init"
+                            adj_ind = index_adjustment(index_op(1).Indices);
+                            obj.vector.init(obj.indices{adj_ind{1}}) = varargin{1};
+                          otherwise
+                            error('vdx only supports assigning lb, ub, or init for a variable via dot indexing');
+                        end
+                    else
+                        error("Currently vdx allows only scalar assignment to lb, ub, or init via dot indexing")
+                    end
+                else
+                    error('unsupported indexing');
+                    % TODO(@anton) better error here.
+                end
             end
+            % TODO(@anton) dot indexng synatctic sugar needs some more thought and possibly a _lot_ more logic to handle
+            %              different modalities of the RHS, including assigning to multiple indexes at once.
         end
 
         function n = parenListLength(obj,index_op,ctx)
@@ -97,3 +135,7 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
         end
     end
 end
+
+
+% TODO(@anton) (High priority) `end` needs to work correctly when indexing a variable. It currently does not.
+%              This will require overriding the default end behavior
