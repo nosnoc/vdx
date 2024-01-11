@@ -8,6 +8,9 @@ classdef Vector < handle &...
         lb
         ub
         init
+        % Numeric vectors for results
+        res
+        mult
         % Default values for bounds and init
         default_lb
         default_ub
@@ -107,6 +110,11 @@ classdef Vector < handle &...
             obj.lb = [obj.lb; lb];
             obj.ub = [obj.ub; ub];
             obj.init = [obj.init; initial];
+
+            % initialize results and multipliers to zero
+            % TODO(@anton) is there a better descision than this?
+            obj.result = [obj.res; zeros(n,1)];
+            obj.multiplier = [obj.mult; zeros(n,1)];
 
             indices = (n_w+1):(n_w+n);
         end

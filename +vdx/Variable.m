@@ -51,8 +51,16 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
                         init = cellfun(@(x) obj.vector.init(x), obj.indices, 'uni', false);
                         adj_ind = index_adjustment(index_op(1).Indices);
                         out = squeeze(init(adj_ind{:}));
+                      case "res"
+                        res = cellfun(@(x) obj.vector.res(x), obj.indices, 'uni', false);
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        out = squeeze(res(adj_ind{:}));
+                      case "mult"
+                        mult = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        out = squeeze(mult(adj_ind{:}));
                       otherwise
-                        error('vdx only supports getting lb, ub, or init for a variable via dot indexing');
+                        error('vdx only supports getting lb, ub, init, res, or mult for a variable via dot indexing');
                     end
                 else
                     error('unsupported indexing');

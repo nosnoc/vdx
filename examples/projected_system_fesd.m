@@ -14,7 +14,7 @@ n_c = length(c);
 
 lambda = SX.sym('lambda', n_c);
 
-nabla_c = c.jacobian(x);
+nabla_c = c.jacobian(x)';
 
 f_x = f + nabla_c*lambda;
 
@@ -98,7 +98,7 @@ for ii=1:N_stages
         end
         G = [G;Gij];
         H = [H;Hij];
-        prob.g.complementarity(ii,jj) = {Gij.*Hij - prob.p.sigma(1), 0, inf};
+        prob.g.complementarity(ii,jj) = {Gij.*Hij - prob.p.sigma(1), -inf, 0};
         x_prev = prob.w.x(ii,jj,n_s);
     end
 end
@@ -106,36 +106,30 @@ end
 
 %% Mean step equilibration Heuristic
 for ii=1:N_stages
-    sum_h = 0;
     for jj=1:N_fe
-        prob.f = prob.f + prob.p.gamma_h(1)*(h0-sum_h)^2;
+        prob.f = prob.f + prob.p.gamma_h(1)*(h0-prob.w.h(ii,jj))^2;
     end
 end
 
 %% Initialize x0
-prob.w.x(0,0,0).init = [0;0.5];
-prob.w.x(0,0,0).lb = [0;0.5];
-prob.w.x(0,0,0).ub = [0;0.5];
+x0 = [0;0.5];
 
 %% homotopy solver
-w = prob.w(:);
-g = prob.g(:);
-p = prob.p(:);
-f = prob.f;
+prob.create_solver(struct());
 
-casadi_nlp = struct('x', w, 'g', g, 'p', p, 'f', f);
-solver = nlpsol('proj_fesd', 'ipopt', casadi_nlp);
-
-sigma_k = 1;
-x0 = prob.w.init;
-while sigma_k >= 1e-9
-    prob.p.sigma(1).init = sigma_k;
-    nlp_results = solver('x0', x0,...
-        'lbx', prob.w.lb,...
-        'ubx', prob.w.ub,...
-        'lbg', prob.g.lb,...
-        'ubg', prob.g.ub,...
-        'p', prob.p.init);
-    sigma_k = 0.1*sigma_k;
-    x0 = full(nlp_results.x);
+x_res = x0;
+x_curr = x0;
+for step=1:20
+    prob.w.x(0,0,0).init = x_curr;
+    prob.w.x(0,0,0).lb = x_curr;
+    prob.w.x(0,0,0).ub = x_curr;
+    sigma_k = 1;
+    while sigma_k >= 1e-9
+        prob.p.sigma(1).init = sigma_k;
+        prob.solve();
+        sigma_k = 0.1*sigma_k;
+        prob.w.init = prob.w.res;
+    end
+    x_curr = prob.w.x(1,N_fe,n_s).res;
+    x_res = [x_res,x_curr];
 end
