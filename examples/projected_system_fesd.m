@@ -27,7 +27,8 @@ N_fe = 3;
 n_s = 2;
 
 T = 0.1;
-h0 = T/N_fe;
+t_stage = T/N_stages;
+h0 = t_stage/N_fe;
 irk_scheme = 'radau';
 [B, C, D, tau_root] = generate_butcher_tableu_integral(n_s, irk_scheme);
 
@@ -37,7 +38,7 @@ prob = Problem();
 prob.w.x(0,0,0) = {{['x_0'], n_x}};
 for ii=1:N_stages
     for jj=1:N_fe
-        prob.w.h(ii,jj) = {{['h_' num2str(ii) '_' num2str(jj)], 1}, 0, 0.1};
+        prob.w.h(ii,jj) = {{['h_' num2str(ii) '_' num2str(jj)], 1}, 0, 2*h0, h0};
         for kk=1:n_s
             prob.w.x(ii,jj,kk) = {{['x_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_x}};
             prob.w.lambda(ii,jj,kk) = {{['lambda_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
@@ -46,6 +47,7 @@ for ii=1:N_stages
 end
 
 prob.p.sigma(1) = {SX.sym('sigma'),0,inf,0};
+prob.p.gamma_h(1) = {SX.sym('gamma_h'),0,inf,0.1};
 
 %% Dyanamics
 x_prev = prob.w.x(0,0,0);
@@ -58,15 +60,24 @@ for ii=1:N_stages
             xk = C(1, kk+1) * x_prev;
             for rr=1:n_s
                 x_ijr = prob.w.x(ii,jj,rr);
-                xj = xk + C(rr+1, kk+1) * x_ijr;
+                xk = xk + C(rr+1, kk+1) * x_ijr;
             end
             h = prob.w.h(ii,jj);
-            prob.g.dynamics(ii,jj,kk) = {h * fj - xj};
+            prob.g.dynamics(ii,jj,kk) = {h * fj - xk};
             % also add non-negativity constraint on c
             prob.g.c_nonnegative(ii,jj,kk) = {c_fun(x_ijk), 0, inf};
         end
         x_prev = prob.w.x(ii,jj,n_s);
     end
+end
+
+%% Sum of hs
+for ii=1:N_stages
+    sum_h = 0;
+    for jj=1:N_fe
+        sum_h = sum_h + prob.w.h(ii,jj);
+    end
+    prob.g.sum_h(ii) = {t_stage-sum_h};
 end
 
 %% Cross Complementarity
@@ -93,3 +104,38 @@ for ii=1:N_stages
 end
 
 
+%% Mean step equilibration Heuristic
+for ii=1:N_stages
+    sum_h = 0;
+    for jj=1:N_fe
+        prob.f = prob.f + prob.p.gamma_h(1)*(h0-sum_h)^2;
+    end
+end
+
+%% Initialize x0
+prob.w.x(0,0,0).init = [0;0.5];
+prob.w.x(0,0,0).lb = [0;0.5];
+prob.w.x(0,0,0).ub = [0;0.5];
+
+%% homotopy solver
+w = prob.w(:);
+g = prob.g(:);
+p = prob.p(:);
+f = prob.f;
+
+casadi_nlp = struct('x', w, 'g', g, 'p', p, 'f', f);
+solver = nlpsol('proj_fesd', 'ipopt', casadi_nlp);
+
+sigma_k = 1;
+x0 = prob.w.init;
+while sigma_k >= 1e-9
+    prob.p.sigma(1).init = sigma_k;
+    nlp_results = solver('x0', x0,...
+        'lbx', prob.w.lb,...
+        'ubx', prob.w.ub,...
+        'lbg', prob.g.lb,...
+        'ubg', prob.g.ub,...
+        'p', prob.p.init);
+    sigma_k = 0.1*sigma_k;
+    x0 = full(nlp_results.x);
+end
