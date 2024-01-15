@@ -19,7 +19,7 @@ classdef InclusionProblem < vdx.Problem
             t_stage = data.T/data.N_stages;
             h0 = t_stage/data.N_fe;
             
-            obj.w.x(0,0,0) = {{['x_0'], n_x}};
+            obj.w.x(0,0,data.n_s) = {{['x_0'], n_x}};
             for ii=1:data.N_stages
                 obj.w.u(ii) = {{['u_' num2str(ii)], n_u}, data.lbu, data.ubu, data.u0};
                 for jj=1:data.N_fe
@@ -56,7 +56,7 @@ classdef InclusionProblem < vdx.Problem
             f_q_fun = Function('q_fun', {obj.data.x,obj.data.u}, {obj.data.f_q});
             f_q_T_fun = Function('q_fun', {obj.data.x}, {obj.data.f_q_T});
             c_fun = Function('c_fun', {obj.data.x}, {obj.data.c});
-            x_prev = obj.w.x(0,0,0);
+            x_prev = obj.w.x(0,0,obj.data.n_s);
             for ii=1:obj.data.N_stages
                 ui = obj.w.u(ii);
                 sum_h = 0;
@@ -88,7 +88,7 @@ classdef InclusionProblem < vdx.Problem
             obj.f = obj.f + f_q_T_fun(obj.w.x(ii,jj,kk));
 
             % Do Cross-Complementarity
-            x_prev = obj.w.x(0,0,0);
+            x_prev = obj.w.x(0,0,obj.data.n_s);
             G = [];
             H = [];
             for ii=1:obj.data.N_stages

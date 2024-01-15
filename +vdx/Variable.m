@@ -33,9 +33,9 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
             if isscalar(index_op)
                 % TODO(@anton) Decide whether we squeeze, or concatenate with sorted indices.
                 %              This is in my opinion purely a decision that should be made and stuck to.
-                symbolics = cellfun(@(x) obj.vector.w(x), obj.indices, 'uni', false);
                 adj_ind = index_adjustment(index_op.Indices);
-                out = squeeze(symbolics(adj_ind{:}));
+                symbolics = cellfun(@(x) obj.vector.w(x), obj.indices(adj_ind{:}), 'uni', false);
+                out = squeeze(symbolics);
             else
                 if index_op(2).Type == 'Dot'
                     switch(index_op(2).Name)
@@ -87,13 +87,13 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
                         switch(index_op(2).Name)
                           case "lb"
                             adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.lb(obj.indices{adj_ind{1}}) = varargin{1};
+                            obj.vector.lb(obj.indices{adj_ind{:}}) = varargin{1};
                           case "ub"
                             adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.ub(obj.indices{adj_ind{1}}) = varargin{1};
+                            obj.vector.ub(obj.indices{adj_ind{:}}) = varargin{1};
                           case "init"
                             adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.init(obj.indices{adj_ind{1}}) = varargin{1};
+                            obj.vector.init(obj.indices{adj_ind{:}}) = varargin{1};
                           otherwise
                             error('vdx only supports assigning lb, ub, or init for a variable via dot indexing');
                         end
