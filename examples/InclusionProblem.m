@@ -87,6 +87,12 @@ classdef InclusionProblem < vdx.Problem
             % Terminal cost
             obj.f = obj.f + f_q_T_fun(obj.w.x(ii,jj,kk));
 
+            % Terminal constraint
+            if isfield(obj.data, 'g_T')
+                g_T_fun = Function('g_T_fun', {obj.data.x}, {obj.data.g_T});
+                obj.g.terminal(0) = {g_T_fun(obj.w.x(ii,jj,kk))}; % TODO(@anton) assume equality for now
+            end
+
             % Do Cross-Complementarity
             x_prev = obj.w.x(0,0,obj.data.n_s);
             G = [];

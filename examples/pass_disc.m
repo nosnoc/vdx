@@ -5,29 +5,29 @@ import vdx.*
 
 T = 1;
 R = 3.5;
+R_obj = 1.5;
 %% Define projected system
 x1 = SX.sym('x1', 2);
 x2 = SX.sym('x2', 2);
-x = [x1;x2];
-x_target = [10;0;10;10];
+x3 = SX.sym('x3', 2);
+x = [x1;x2;x3];
+x_target = [-10;0;10;0;10;10];
 data.x = x;
-data.lbx = [-inf;-inf;-inf;-inf];
-data.ubx = [inf;inf;inf;inf];
-data.x0 = [-10;0;10;0];
+data.lbx = [-inf;-inf;0;-inf;-inf;-inf];
+data.ubx = [0;inf;inf;inf;inf;inf];
+data.x0 = [-10;0;10;0;-5;0];
 u1 = SX.sym('u1', 2);
 u2 = SX.sym('u2', 2);
 data.u = [u1;u2];
-data.lbu = [-100/sqrt(2);-100/sqrt(2);0;0];
-%data.lbu = [-100/sqrt(2);-100/sqrt(2);-60/sqrt(2);-60/sqrt(2)];
-%data.ubu = [100/sqrt(2);100/sqrt(2);60/sqrt(2);60/sqrt(2)];
-data.ubu = [100/sqrt(2);100/sqrt(2);0;0];
+data.lbu = [-100/sqrt(2);-100/sqrt(2);-100/sqrt(2);-100/sqrt(2)];
+data.ubu = [100/sqrt(2);100/sqrt(2);100/sqrt(2);100/sqrt(2)];
 data.u0 = [0;0;0;0];
-data.c = [norm_2(x2-x1)-2*R;norm_2(x1-[0;0])-(R+3)];
-data.f_x = [u1;0;0];
+data.c = [norm_2(x3-x1)-(R+R_obj);norm_2(x3-x2)-(R+R_obj);norm_2(x2-x1)-2*R];
+data.f_x = [u1;u2;0;0];
 
 % costs
-data.f_q = 0.0001*norm_2(data.u)^2;
-data.f_q_T = 10000*0.5*(norm_2(x2-x_target(3:4))^2);%0.5*(norm_2(x)^2);
+data.f_q = 1e-4*norm_2(data.u)^2;
+data.f_q_T = (x-x_target)'*diag([1e-6,1e-6,1e-6,1e-6,1e3,1e3])*(x-x_target);
 
 data.T = T;
 data.N_stages = 25;
@@ -46,7 +46,7 @@ default_tol = 1e-12;
 opts_casadi_nlp.print_time = 0;
 opts_casadi_nlp.ipopt.sb = 'yes';
 opts_casadi_nlp.verbose = false;
-opts_casadi_nlp.ipopt.max_iter = 500;
+opts_casadi_nlp.ipopt.max_iter = 5000;
 opts_casadi_nlp.ipopt.bound_relax_factor = 0;
 %opts_casadi_nlp.ipopt.bound_relax_factor = 1e-8;
 %opts_casadi_nlp.ipopt.honor_original_bounds = 'yes';
@@ -74,5 +74,5 @@ u_res = prob.w.u(1:data.N_stages).res';
 u_res = [u_res{:}];
 h_res = prob.w.h(:).res';
 h_res = [h_res{:}];
-t_res = [0,cumsum(h_res)]
-plot_discs(h_res,x_res,[3.5,3.5])
+t_res = [0,cumsum(h_res)];
+plot_discs(h_res,x_res,[R,R,R_obj], ["circle","circle","circle"])
