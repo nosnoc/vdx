@@ -1,4 +1,4 @@
-function result = qp_solver(Q,c,A,b,x0)
+function result = nlp_solver(x, f, g, x0)
 % This example implements a projected gradient method via FESD discretization
 % Yes this is a little ridiculous to solve a qp by generating an MPCC and solving that with IPOPT
 % which itself uses a QP solver underneath.
@@ -6,11 +6,10 @@ function result = qp_solver(Q,c,A,b,x0)
 % could be solved with a dedicated solver. Now is there any benefit here over an event capturing method? I don't think so,
 % except possibly that we take "full steps" though this may actually be bad? idk :)
     import casadi.*
-    n_x = size(x0,1);
+    n_x = size(x,1);
     % TODO check sizes
 
     % Generate PDS corresponding to the QP
-    x = SX.sym('x', n_x);
     data.x = x;
     data.lbx = -inf*ones(n_x,1);
     data.ubx = inf*ones(n_x,1);
@@ -19,15 +18,15 @@ function result = qp_solver(Q,c,A,b,x0)
     data.lbu = [];
     data.ubu = [];
     data.u0 = [];
-    data.c = A*x - b;
-    data.f_x = -(Q*x + c);
+    data.c = g;
+    data.f_x = -(f.jacobian(x)');
     data.f_q = 0;
     data.f_q_T = 0;
 
-    data.T = 0.35; % TODO(@anton) adjust this depending on when the homotopy fails to converge :)
+    data.T = 0.1; % TODO(@anton) adjust this depending on when the homotopy fails to converge :)
     data.N_stages = 1;
-    data.N_fe = 2;
-    data.n_s = 1;
+    data.N_fe = 3;
+    data.n_s = 2;
     data.irk_scheme = 'radau';
 
     % Generate problem
