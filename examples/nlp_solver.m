@@ -65,6 +65,7 @@ function result = nlp_solver(x, f, g, x0)
     x_prev = data.x0;
     iters = 0;
     while true
+        prob.w.init = prob.w.res;
         prob.w.x(0,0,data.n_s).init = x_curr;
         prob.w.x(0,0,data.n_s).lb = x_curr;
         prob.w.x(0,0,data.n_s).ub = x_curr;

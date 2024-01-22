@@ -114,5 +114,6 @@ function [result, prob] = qp_solver(Q,c,A,b,x0)
             break
         end
         x_prev = x_curr;
+        prob.w.init = prob.w.res;
     end
 end
