@@ -36,7 +36,7 @@ classdef Problem < handle
             obj.solver = casadi.nlpsol('proj_fesd', 'ipopt', casadi_nlp, casadi_options);
         end
 
-        function solve(obj)
+        function stats = solve(obj)
             nlp_results = obj.solver('x0', obj.w.init,...
                 'lbx', obj.w.lb,...
                 'ubx', obj.w.ub,...
@@ -46,13 +46,14 @@ classdef Problem < handle
                 'lam_x0', obj.w.mult,...
                 'p', obj.p.init);
             if ~obj.solver.stats.success
-                warning("failed to converge")
+                %warning("failed to converge")
             end
             obj.w.res = full(nlp_results.x);
             obj.w.mult = full(nlp_results.lam_x);
             obj.g.res = full(nlp_results.g);
             obj.g.mult = full(nlp_results.lam_g);
             obj.p.mult = full(nlp_results.lam_p);
+            stats = obj.solver.stats;
         end
     end
     
