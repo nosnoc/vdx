@@ -32,6 +32,7 @@ classdef InclusionProblem < vdx.Problem
             end
             obj.p.sigma(1) = {{'sigma',1},0,inf,0};
             obj.p.gamma_h(1) = {{'gamma_h',1},0,inf,0.1};
+            obj.p.T(1) = {{'T',1},0,inf,data.T};
         end
 
         function generate_constraints(obj)
@@ -42,8 +43,8 @@ classdef InclusionProblem < vdx.Problem
             n_c = length(obj.data.c);
 
             % other derived values
-            t_stage = obj.data.T/obj.data.N_stages;
-            h0 = t_stage/obj.data.N_fe;
+            t_stage = obj.p.T(1)/obj.data.N_stages;
+            h0 = obj.p.T(1).init/obj.data.N_fe;
             
             % Define functions from obj.data
             lambda = SX.sym('lambda', n_c);

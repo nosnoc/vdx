@@ -9,7 +9,7 @@ function result = nlp_solver(x, f, g, x0)
     n_x = size(x,1);
     % TODO check sizes
 
-    % Generate PDS corresponding to the QP
+    % Generate PDS corresponding to the NLP
     data.x = x;
     data.lbx = -inf*ones(n_x,1);
     data.ubx = inf*ones(n_x,1);
