@@ -2,6 +2,8 @@ classdef InclusionProblem < vdx.Problem
     properties (Access=public)
         data
         opts
+        eta_vec
+        eta_fun
     end
     
     methods (Access=public)
@@ -9,11 +11,22 @@ classdef InclusionProblem < vdx.Problem
             obj@vdx.Problem(); % call parent constructor to prepare
             obj.data = data;
             obj.opts = opts;
-            
+
+            if ~isfield(obj.opts, 'use_fesd')
+                obj.opts.use_fesd = true;
+            end
             % get dimensions
             n_x = length(data.x);
             n_u = length(data.u);
             n_c = length(data.c);
+
+            % if opts.elastic_ell_inf
+            %     obj.w.s_elastic(1) = {{'s_elastic',1},0,inf,0};
+            % end
+            obj.p.sigma(1) = {{'sigma',1},0,inf,0};
+            obj.p.gamma_h(1) = {{'gamma_h',1},0,inf,0.1};
+            obj.p.T(1) = {{'T',1},0,inf,data.T};
+
 
             % other derived values
             t_stage = data.T/data.N_stages;
@@ -23,16 +36,15 @@ classdef InclusionProblem < vdx.Problem
             for ii=1:data.N_stages
                 obj.w.u(ii) = {{['u_' num2str(ii)], n_u}, data.lbu, data.ubu, data.u0};
                 for jj=1:data.N_fe
-                    obj.w.h(ii,jj) = {{['h_' num2str(ii) '_' num2str(jj)], 1}, 0, 2*h0, h0};
+                    if obj.opts.use_fesd
+                        obj.w.h(ii,jj) = {{['h_' num2str(ii) '_' num2str(jj)], 1}, 0, 2*h0, h0};
+                    end
                     for kk=1:data.n_s
                         obj.w.x(ii,jj,kk) = {{['x_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_x}, data.lbx, data.ubx, data.x0};
                         obj.w.lambda(ii,jj,kk) = {{['lambda_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
                     end
                 end
             end
-            obj.p.sigma(1) = {{'sigma',1},0,inf,0};
-            obj.p.gamma_h(1) = {{'gamma_h',1},0,inf,0.1};
-            obj.p.T(1) = {{'T',1},0,inf,data.T};
         end
 
         function generate_constraints(obj)
@@ -43,8 +55,12 @@ classdef InclusionProblem < vdx.Problem
             n_c = length(obj.data.c);
 
             % other derived values
-            t_stage = obj.p.T(1)/obj.data.N_stages;
-            h0 = obj.p.T(1).init/obj.data.N_fe;
+            if obj.opts.use_fesd
+                t_stage = obj.p.T(1)/obj.data.N_stages;
+                h0 = obj.p.T(1).init/(obj.data.N_stages*obj.data.N_fe);
+            else
+                h0 = obj.p.T(1).init/(obj.data.N_stages*obj.data.N_fe);
+            end
             
             % Define functions from obj.data
             lambda = SX.sym('lambda', n_c);
@@ -62,8 +78,12 @@ classdef InclusionProblem < vdx.Problem
                 ui = obj.w.u(ii);
                 sum_h = 0;
                 for jj=1:obj.data.N_fe
-                    h = obj.w.h(ii,jj);
-                    sum_h = sum_h + h;
+                    if obj.opts.use_fesd
+                        h = obj.w.h(ii,jj);
+                        sum_h = sum_h + h;
+                    else
+                        h = h0;
+                    end
                     for kk=1:obj.data.n_s
                         x_ijk = obj.w.x(ii,jj,kk);
                         lambda_ijk = obj.w.lambda(ii,jj,kk);
@@ -82,7 +102,9 @@ classdef InclusionProblem < vdx.Problem
                     end
                     x_prev = obj.w.x(ii,jj,obj.data.n_s);
                 end
-                obj.g.sum_h(ii) = {t_stage-sum_h};
+                if obj.opts.use_fesd
+                    obj.g.sum_h(ii) = {t_stage-sum_h};
+                end
             end
 
             % Terminal cost
@@ -93,33 +115,193 @@ classdef InclusionProblem < vdx.Problem
                 g_T_fun = Function('g_T_fun', {obj.data.x}, {obj.data.g_T});
                 obj.g.terminal(0) = {g_T_fun(obj.w.x(ii,jj,kk))}; % TODO(@anton) assume equality for now
             end
-
+            
             % Do Cross-Complementarity
             x_prev = obj.w.x(0,0,obj.data.n_s);
             G = [];
             H = [];
             for ii=1:obj.data.N_stages
                 for jj=1:obj.data.N_fe
-                    Gij = c_fun(x_prev);
-                    Hij = 0;
-                    for kk=1:obj.data.n_s
-                        x_ijk = obj.w.x(ii,jj,kk);
-                        lambda_ijk = obj.w.lambda(ii,jj,kk);
-                        Gij = Gij + c_fun(x_ijk);
-                        Hij = Hij + lambda_ijk;
+                    if obj.opts.use_fesd
+                        Gij = c_fun(x_prev);
+                        Hij = 0;
+                        for kk=1:obj.data.n_s
+                            x_ijk = obj.w.x(ii,jj,kk);
+                            lambda_ijk = obj.w.lambda(ii,jj,kk);
+                            Gij = Gij + c_fun(x_ijk);
+                            Hij = Hij + lambda_ijk;
+                        end
+                        G = [G;Gij];
+                        H = [H;Hij];
+                        obj.g.complementarity(ii,jj) = {Gij.*Hij - obj.p.sigma(1), -inf, 0};
+                        x_prev = obj.w.x(ii,jj,obj.data.n_s);
+                    else
+                        Gij = [];
+                        Hij = [];
+                        for kk=1:obj.data.n_s
+                            x_ijk = obj.w.x(ii,jj,kk);
+                            lambda_ijk = obj.w.lambda(ii,jj,kk);
+                            Gij = [Gij;c_fun(x_ijk)];
+                            Hij = [Hij;lambda_ijk];
+                        end
+                        G = [G;Gij];
+                        H = [H;Hij];
+                        obj.g.complementarity(ii,jj) = {Gij.*Hij - obj.p.sigma(1), -inf, 0};
                     end
-                    G = [G;Gij];
-                    H = [H;Hij];
-                    obj.g.complementarity(ii,jj) = {Gij.*Hij - obj.p.sigma(1), -inf, 0};
-                    x_prev = obj.w.x(ii,jj,obj.data.n_s);
                 end
             end
 
-            % Do Step equilibration (only heuristic for now)
-            for ii=1:obj.data.N_stages
-                for jj=1:obj.data.N_fe
-                    obj.f = obj.f + obj.p.gamma_h(1)*(h0-obj.w.h(ii,jj))^2;
+            % Not c implementation
+            if 0 %TODO(@anton) this seems to work. remove once sure
+                for ii=1:obj.data.N_stages
+                    for jj=1:obj.data.N_fe
+                        for kk=1:obj.data.n_s
+                            x = obj.w.x(ii,jj,kk);
+                            cx = c_fun(x);
+                            obj.w.not_cx(ii,jj,kk) = {{'not_cx', n_c}, 0, 1, 0};
+                            not_cx = obj.w.not_cx(ii,jj,kk);
+                            obj.g.not_cx_comp(ii,jj,kk) = {cx.*not_cx - obj.p.sigma(1), -inf, 0};
+                            obj.f = obj.f + sum1(1e-2*obj.p.gamma_h(1)*(not_cx-1).^2);
+                        end
+                    end
                 end
+            end
+
+            
+            % Do Step equilibration (only heuristic for now)
+            if ~isfield(obj.opts, 'step_eq')
+                obj.opts.step_eq = 'heuristic_mean';
+            end
+            if ~obj.opts.use_fesd
+                obj.opts.step_eq = 'none';
+            end
+            switch obj.opts.step_eq
+              case 'heuristic_mean'
+                for ii=1:obj.data.N_stages
+                    for jj=1:obj.data.N_fe
+                        obj.f = obj.f + obj.p.gamma_h(1)*(h0-obj.w.h(ii,jj))^2;
+                    end
+                end
+              case 'direct'
+                eta_vec = [];
+                for ii=1:obj.data.N_stages
+                    if ii > 1
+                        sigma_c_B = 0;
+                        sigma_lam_B = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_B = sigma_c_B + c_fun(obj.w.x(ii-1,jj,kk));
+                            sigma_lam_B = sigma_lam_B + obj.w.lambda(ii-1,jj,kk);
+                        end
+                        sigma_c_F = 0;
+                        sigma_lam_F = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_F = sigma_c_F + c_fun(obj.w.x(ii,1,kk));
+                            sigma_lam_F = sigma_lam_F + obj.w.lambda(ii,1,kk);
+                        end
+
+                        pi_c = sigma_c_B .* sigma_c_F;
+                        pi_lam = sigma_lam_B .* sigma_lam_F;
+                        nu = pi_c + pi_lam;
+                        eta = 1;
+                        for jjj=1:length(nu)
+                            eta = eta*nu(jjj);
+                        end
+                        eta_vec = [eta_vec;eta];
+                        obj.eta_vec = eta_vec;
+                        delta_h = obj.w.h(ii,1) - obj.w.h(ii-1,jj);
+                        obj.g.step_equilibration(ii,1) = {eta*delta_h, -1e-6, 1e-6};
+                    end
+                    for jj=2:obj.data.N_fe
+                        sigma_c_B = 0;
+                        sigma_lam_B = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_B = sigma_c_B + c_fun(obj.w.x(ii,jj-1,kk));
+                            sigma_lam_B = sigma_lam_B + obj.w.lambda(ii,jj-1,kk);
+                        end
+                        sigma_c_F = 0;
+                        sigma_lam_F = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_F = sigma_c_F + c_fun(obj.w.x(ii,jj,kk));
+                            sigma_lam_F = sigma_lam_F + obj.w.lambda(ii,jj,kk);
+                        end
+
+                        pi_c = sigma_c_B .* sigma_c_F;
+                        pi_lam = sigma_lam_B .* sigma_lam_F;
+                        nu = pi_c + pi_lam;
+                        eta = 1;
+                        for jjj=1:length(nu)
+                            eta = eta*nu(jjj);
+                        end
+                        eta_vec = [eta_vec;eta];
+                        delta_h = obj.w.h(ii,jj) - obj.w.h(ii,jj-1);
+                        obj.g.step_equilibration(ii,jj) = {eta*delta_h, -1e-6, 1e-6};
+                    end
+                end
+                obj.eta_fun = Function('eta_fun', {obj.w.w}, {eta_vec});
+              case 'direct_homotopy'
+                eta_vec = [];
+                for ii=1:obj.data.N_stages
+                    if ii > 1
+                        sigma_c_B = 0;
+                        sigma_lam_B = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_B = sigma_c_B + c_fun(obj.w.x(ii-1,jj,kk));
+                            sigma_lam_B = sigma_lam_B + obj.w.lambda(ii-1,jj,kk);
+                        end
+                        sigma_c_F = 0;
+                        sigma_lam_F = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_F = sigma_c_F + c_fun(obj.w.x(ii,1,kk));
+                            sigma_lam_F = sigma_lam_F + obj.w.lambda(ii,1,kk);
+                        end
+
+                        pi_c = sigma_c_B .* sigma_c_F;
+                        pi_lam = sigma_lam_B .* sigma_lam_F;
+                        nu = pi_c + pi_lam;
+                        eta = 1;
+                        for jjj=1:length(nu)
+                            eta = eta*nu(jjj);
+                        end
+                        eta_vec = [eta_vec;eta];
+                        obj.eta_vec = eta_vec;
+                        delta_h = obj.w.h(ii,1) - obj.w.h(ii-1,jj);
+                        homotopy_eq = [eta*delta_h - obj.p.sigma(1);eta*delta_h + obj.p.sigma(1)];
+                        obj.g.step_equilibration(ii,1) = {homotopy_eq, [-inf;0], [0;inf]};
+                    end
+                    for jj=2:obj.data.N_fe
+                        sigma_c_B = 0;
+                        sigma_lam_B = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_B = sigma_c_B + c_fun(obj.w.x(ii,jj-1,kk));
+                            sigma_lam_B = sigma_lam_B + obj.w.lambda(ii,jj-1,kk);
+                        end
+                        sigma_c_F = 0;
+                        sigma_lam_F = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_F = sigma_c_F + c_fun(obj.w.x(ii,jj,kk));
+                            sigma_lam_F = sigma_lam_F + obj.w.lambda(ii,jj,kk);
+                        end
+
+                        pi_c = sigma_c_B .* sigma_c_F;
+                        pi_lam = sigma_lam_B .* sigma_lam_F;
+                        nu = pi_c + pi_lam;
+                        eta = 1;
+                        for jjj=1:length(nu)
+                            eta = eta*nu(jjj);
+                        end
+                        eta_vec = [eta_vec;eta];
+                        obj.eta_vec = eta_vec;
+                        delta_h = obj.w.h(ii,jj) - obj.w.h(ii,jj-1);
+                        homotopy_eq = [eta*delta_h - obj.p.sigma(1);eta*delta_h + obj.p.sigma(1)];
+                        obj.g.step_equilibration(ii,jj) = {homotopy_eq, [-inf;0], [0;inf]};
+                    end
+                end
+                obj.eta_fun = Function('eta_fun', {obj.w.w}, {eta_vec});
+
+              case 'direct_fix_pathological'
+                %TODO(@anton)
+              case 'none'
+                % Do nothing
             end
         end
     end

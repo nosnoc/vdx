@@ -22,11 +22,11 @@ data.lbu = [-100/sqrt(2);-100/sqrt(2);0;0];
 %data.ubu = [100/sqrt(2);100/sqrt(2);60/sqrt(2);60/sqrt(2)];
 data.ubu = [100/sqrt(2);100/sqrt(2);0;0];
 data.u0 = [0;0;0;0];
-data.c = [norm_2(x2-x1)-2*R;norm_2(x1-[0;0])-(R+3)];
+data.c = [norm_2(x2-x1)-2*R];
 data.f_x = [u1;0;0];
 
 % costs
-data.f_q = 0.0001*norm_2(data.u)^2;
+data.f_q = 0.001*norm_2(data.u)^2;
 data.f_q_T = 10000*0.5*(norm_2(x2-x_target(3:4))^2);%0.5*(norm_2(x)^2);
 
 data.T = T;
@@ -35,7 +35,9 @@ data.N_fe = 3;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 
-prob = InclusionProblem(data, struct);
+opts.step_eq = 'direct';
+
+prob = InclusionProblem(data, opts);
 
 prob.generate_constraints();
 
@@ -46,7 +48,7 @@ default_tol = 1e-12;
 opts_casadi_nlp.print_time = 0;
 opts_casadi_nlp.ipopt.sb = 'yes';
 opts_casadi_nlp.verbose = false;
-opts_casadi_nlp.ipopt.max_iter = 500;
+opts_casadi_nlp.ipopt.max_iter = 10000;
 opts_casadi_nlp.ipopt.bound_relax_factor = 0;
 %opts_casadi_nlp.ipopt.bound_relax_factor = 1e-8;
 %opts_casadi_nlp.ipopt.honor_original_bounds = 'yes';
@@ -72,7 +74,7 @@ x_res = prob.w.x(0:data.N_stages,0:data.N_fe,data.n_s).res';
 x_res = [x_res{:}];
 u_res = prob.w.u(1:data.N_stages).res';
 u_res = [u_res{:}];
-h_res = prob.w.h(:).res';
+h_res = prob.w.h(:,:).res';
 h_res = [h_res{:}];
 t_res = [0,cumsum(h_res)]
-plot_discs(h_res,x_res,[3.5,3.5])
+plot_discs(h_res,x_res,[3.5,3.5], ["circle", "circle"])
