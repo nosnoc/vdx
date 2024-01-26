@@ -4,7 +4,7 @@ import casadi.*
 import vdx.*
 
 T = 5.0;
-N_sim = 50;
+N_sim = 25;
 t_step = T/N_sim;
 %% Define (uncontrolled for now) projected system
 x = SX.sym('x', 2);
@@ -24,7 +24,7 @@ data.f_q_T = 0;
 data.T = t_step;
 data.N_stages = 1;
 data.N_fe = 3;
-data.n_s = 2;
+data.n_s = 1;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';

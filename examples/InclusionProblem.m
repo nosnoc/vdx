@@ -118,6 +118,29 @@ classdef InclusionProblem < vdx.Problem
                 g_T_fun = Function('g_T_fun', {obj.data.x}, {obj.data.g_T});
                 obj.g.terminal(0) = {g_T_fun(obj.w.x(ii,jj,kk))}; % TODO(@anton) assume equality for now
             end
+
+            % C indicator implementation.
+            if 1 %TODO(@anton) this seems to work. remove once sure
+                x = obj.w.x(0,0,obj.data.n_s);
+                cx = c_fun(x);
+                obj.w.c_ind(0,0,obj.data.n_s) = {{'c_ind_0', n_c}, 0, 1, 0};
+                c_ind = obj.w.c_ind(0,0,obj.data.n_s);
+                obj.g.c_ind_comp(0,0,obj.data.n_s) = {cx.*c_ind - obj.p.sigma(1), -inf, 0};
+                obj.f = obj.f + sum1(1e-2*obj.p.gamma_h(1)*(c_ind-1).^2);
+                for ii=1:obj.data.N_stages
+                    for jj=1:obj.data.N_fe
+                        for kk=1:obj.data.n_s
+                            x = obj.w.x(ii,jj,kk);
+                            cx = c_fun(x);
+                            obj.w.c_ind(ii,jj,kk) = {{['c_ind_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c}, 0, inf, 0};
+                            c_ind = obj.w.c_ind(ii,jj,kk);
+                            obj.g.c_ind_comp(ii,jj,kk) = {cx.*c_ind - obj.p.sigma(1), -inf, 0};
+                            obj.f = obj.f + sum1(1e-2*obj.p.gamma_h(1)*(c_ind-1).^2);
+                        end
+                    end
+                end
+            end
+
             
             % Do Cross-Complementarity
             x_prev = obj.w.x(0,0,obj.data.n_s);
@@ -150,22 +173,6 @@ classdef InclusionProblem < vdx.Problem
                         G = [G;Gij];
                         H = [H;Hij];
                         obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - obj.p.sigma(1)), -inf, 0};
-                    end
-                end
-            end
-
-            % C indicator implementation.
-            if 1 %TODO(@anton) this seems to work. remove once sure
-                for ii=1:obj.data.N_stages
-                    for jj=1:obj.data.N_fe
-                        for kk=1:obj.data.n_s
-                            x = obj.w.x(ii,jj,kk);
-                            cx = c_fun(x);
-                            obj.w.c_ind(ii,jj,kk) = {{'c_ind', n_c}, 0, inf, 0};
-                            c_ind = obj.w.c_ind(ii,jj,kk);
-                            obj.g.c_ind_comp(ii,jj,kk) = {cx.*c_ind - obj.p.sigma(1), -inf, 0};
-                            obj.f = obj.f + sum1(1e-2*obj.p.gamma_h(1)*(c_ind-1).^2);
-                        end
                     end
                 end
             end
