@@ -4,7 +4,7 @@ import casadi.*
 import vdx.*
 
 T = 5.0;
-N_sim = 20;
+N_sim = 50;
 t_step = T/N_sim;
 %% Define (uncontrolled for now) projected system
 x = SX.sym('x', 2);
@@ -23,12 +23,12 @@ data.f_q_T = 0;
 
 data.T = t_step;
 data.N_stages = 1;
-data.N_fe = 2;
-data.n_s = 1;
+data.N_fe = 3;
+data.n_s = 2;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';
-opts.use_fesd = false;
+opts.use_fesd = true;
 
 prob = InclusionProblem(data, opts);
 
@@ -56,8 +56,13 @@ opts_casadi_nlp.ipopt.warm_start_entire_iterate = 'yes';
 opts_casadi_nlp.ipopt.linear_solver = 'ma27';
 prob.create_solver(opts_casadi_nlp);
 
+c_fun = Function('c_fun', {data.x}, {data.c});
+
 x_res = data.x0;
+x_res_long = data.x0;
+c_ind = [0;0];
 h_res = [];
+lambda_res = [];
 x_curr = data.x0;
 for step=1:N_sim
     prob.w.x(0,0,data.n_s).init = x_curr;
@@ -72,6 +77,12 @@ for step=1:N_sim
     x_curr = prob.w.x(1,data.N_fe,data.n_s).res;
     x_sim = prob.w.x(1,:,data.n_s).res;
     x_sim = [x_sim{:}];
+    x_sim_long = prob.w.x(1,:,:).res';
+    x_sim_long = [x_sim_long{:}];
+    c_ind_sim = prob.w.c_ind(1,:,:).res';
+    c_ind_sim = [c_ind_sim{:}];
+    lambda_sim = prob.w.lambda(1,:,:).res';
+    lambda_sim = [lambda_sim{:}];
     if opts.use_fesd
         h_sim = prob.w.h(1,:).res;
         h_sim = [h_sim{:}];
@@ -80,8 +91,13 @@ for step=1:N_sim
     end
     h_res = [h_res,h_sim];
     x_res = [x_res,x_sim];
+    x_res_long = [x_res_long,x_sim_long];
+    lambda_res = [lambda_res, lambda_sim];
+    c_ind = [c_ind,c_ind_sim];
+    % prob.w.init = prob.w.res;
 end
 
+c_res_long = c_fun(x_res_long);
 t_res = [0,cumsum(h_res)];
 
 figure

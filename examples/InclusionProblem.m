@@ -15,6 +15,9 @@ classdef InclusionProblem < vdx.Problem
             if ~isfield(obj.opts, 'use_fesd')
                 obj.opts.use_fesd = true;
             end
+            if ~isfield(obj.opts,'comp_scale')
+                obj.opts.comp_scale = 1;
+            end
             % get dimensions
             n_x = length(data.x);
             n_u = length(data.u);
@@ -133,7 +136,7 @@ classdef InclusionProblem < vdx.Problem
                         end
                         G = [G;Gij];
                         H = [H;Hij];
-                        obj.g.complementarity(ii,jj) = {Gij.*Hij - obj.p.sigma(1), -inf, 0};
+                        obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - obj.p.sigma(1)), -inf, 0};
                         x_prev = obj.w.x(ii,jj,obj.data.n_s);
                     else
                         Gij = [];
@@ -146,22 +149,22 @@ classdef InclusionProblem < vdx.Problem
                         end
                         G = [G;Gij];
                         H = [H;Hij];
-                        obj.g.complementarity(ii,jj) = {Gij.*Hij - obj.p.sigma(1), -inf, 0};
+                        obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - obj.p.sigma(1)), -inf, 0};
                     end
                 end
             end
 
-            % Not c implementation
-            if 0 %TODO(@anton) this seems to work. remove once sure
+            % C indicator implementation.
+            if 1 %TODO(@anton) this seems to work. remove once sure
                 for ii=1:obj.data.N_stages
                     for jj=1:obj.data.N_fe
                         for kk=1:obj.data.n_s
                             x = obj.w.x(ii,jj,kk);
                             cx = c_fun(x);
-                            obj.w.not_cx(ii,jj,kk) = {{'not_cx', n_c}, 0, 1, 0};
-                            not_cx = obj.w.not_cx(ii,jj,kk);
-                            obj.g.not_cx_comp(ii,jj,kk) = {cx.*not_cx - obj.p.sigma(1), -inf, 0};
-                            obj.f = obj.f + sum1(1e-2*obj.p.gamma_h(1)*(not_cx-1).^2);
+                            obj.w.c_ind(ii,jj,kk) = {{'c_ind', n_c}, 0, inf, 0};
+                            c_ind = obj.w.c_ind(ii,jj,kk);
+                            obj.g.c_ind_comp(ii,jj,kk) = {cx.*c_ind - obj.p.sigma(1), -inf, 0};
+                            obj.f = obj.f + sum1(1e-2*obj.p.gamma_h(1)*(c_ind-1).^2);
                         end
                     end
                 end
