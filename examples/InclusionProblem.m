@@ -120,7 +120,7 @@ classdef InclusionProblem < vdx.Problem
             end
 
             % C indicator implementation.
-            if 1 %TODO(@anton) this seems to work. remove once sure
+            if 0 %TODO(@anton) this seems to work. remove once sure
                 x = obj.w.x(0,0,obj.data.n_s);
                 cx = c_fun(x);
                 obj.w.c_ind(0,0,obj.data.n_s) = {{'c_ind_0', n_c}, 0, 1, 0};
