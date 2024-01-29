@@ -1,6 +1,7 @@
-classdef Variable < matlab.mixin.indexing.RedefinesParen &...
+classdef Variable < handle &...
         matlab.mixin.indexing.RedefinesBrace &...
-        handle
+        matlab.mixin.indexing.RedefinesParen &...
+        matlab.mixin.Copyable
     properties
         %
         indices
@@ -23,7 +24,7 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
         end
 
         function varargout = size(obj,varargin)
-            varargout{1} = size(obj.indices);
+            varargout = size(obj.indices, varargin{:});
             %TODO(anton) needs to return correct values for varargin
         end
     end
@@ -136,6 +137,13 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
         function obj = parenDelete(obj,index_op)
             error('Deletion of symbolics is not supported through the variable view')
         end
+
+        function cp = copyElement(obj)
+            cp = copyElement@matlab.mixin.Copyable(obj);
+
+            cp.vector = [];
+            cp.solver = [];
+        end
     end
 
     methods (Static, Access=public)
@@ -144,16 +152,12 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
         end
 
         function ind = end(obj,k,n)
-            sz = size(obj);
+            sz = size(obj.indices);
             if k < n
-                ind = sz(k);
+                ind = sz(k)-1;
             else
                 ind = prod(sz(k:end));
             end
         end
     end
 end
-
-
-% TODO(@anton) (High priority) `end` needs to work correctly when indexing a variable. It currently does not.
-%              This will require overriding the default end behavior

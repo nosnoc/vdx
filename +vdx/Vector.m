@@ -1,6 +1,7 @@
 classdef Vector < handle &...
         matlab.mixin.indexing.RedefinesDot &...
-        matlab.mixin.indexing.RedefinesParen
+        matlab.mixin.indexing.RedefinesParen &...
+        matlab.mixin.Copyable
     properties (Access=public)
         % Symbolic vector that this wraps TODO(@anton) possibly rename?
         w
@@ -47,11 +48,6 @@ classdef Vector < handle &...
             obj.lb = [];
             obj.ub = [];
             obj.init = [];
-
-            % TODO(@anton) We may want to help developers by letting them provide input for
-            %              different vectors when it comes to what the lb, ub, and init defaults are.
-            %              For example we may want lb=0, ub=0 by default for constraint vectors but we also want
-            %              for primal vectors default to be lb=-inf, ub=inf.
         end
         
         function indices = add_variable(obj, symbolic, varargin)
@@ -113,8 +109,8 @@ classdef Vector < handle &...
 
             % initialize results and multipliers to zero
             % TODO(@anton) is there a better descision than this?
-            obj.result = [obj.res; zeros(n,1)];
-            obj.multiplier = [obj.mult; zeros(n,1)];
+            obj.res = [obj.res; zeros(n,1)];
+            obj.mult = [obj.mult; zeros(n,1)];
 
             indices = (n_w+1):(n_w+n);
         end
@@ -125,7 +121,7 @@ classdef Vector < handle &...
         end
 
         function varargout = size(obj,varargin)
-            varargout{1} = size(obj.w);
+            varargout = size(obj.w, varargin{:});
             %TODO(anton) needs to return correct values for varargin and perhaps other cases?
         end
     end
@@ -168,6 +164,19 @@ classdef Vector < handle &...
 
         function n = parenListLength(obj,index_op,ctx)
            n = 1;
+        end
+
+        function cp = copyElement(obj)
+            cp = copyElement@matlab.mixin.Copyable(obj);
+
+            % deepcopy variables
+            var_names = fieldnames(obj.variables);
+            for ii=1:length(var_names)
+                cp.variables.(var_names{ii}) = copy(obj.variables.(var_names{ii}));
+                cp.variables.(var_names{ii}).vector = cp;
+                % Solver needs to be cleared.
+                cp.variables.(var_names{ii}).solver = [];
+            end
         end
     end
 end
