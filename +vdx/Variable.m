@@ -70,7 +70,8 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
             if isscalar(out)
                 varargout{1} = out{1};
             else
-                varargout{1} = out;
+                out = permute(out, ndims(out):-1:1);
+                varargout{1} = [out{:}];
             end
         end
 
@@ -116,11 +117,11 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
         function varargout = braceReference(obj, index_op)
             if isscalar(index_op)
                 values = cellfun(@(x) obj.solver.results.w(x), obj.indices, 'uni', false);
-                varargout{1} = squeeze(obj.symbolics.(index_op));
-                return;
+                out = squeeze(obj.symbolics.(index_op));
             else
                 error('Brace indexing only accesses current values of the solution and no chained indexing')
             end
+            varargout{1} = out;
         end
 
         function obj = braceAssign(obj,index_op,varargin)
@@ -140,6 +141,15 @@ classdef Variable < matlab.mixin.indexing.RedefinesParen &...
     methods (Static, Access=public)
         function obj = empty()
             obj = NosnocVariable([],[]);
+        end
+
+        function ind = end(obj,k,n)
+            sz = size(obj);
+            if k < n
+                ind = sz(k);
+            else
+                ind = prod(sz(k:end));
+            end
         end
     end
 end
