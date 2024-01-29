@@ -70,3 +70,10 @@ y_result = prob.w.y(ii).res;
 lambda_x = prob.w.x(ii).mult;
 lambda_y = prob.w.y(ii).mult;
 ```
+
+## Implementation Details and Notes
+There are some details that are important to note:
+* Indexing into variable class is zero indexed.
+* Assigning to `init`, `lb`, and `ub`, can only be done for scalar indexes. Updating VDX to allow for assigning to non-scalar indices is a soon to be implemented.
+* We assume that the length of each index of a variable class is uniformly a single value or empty.
+* When accessing a variable class numeric value (`lb`, `ub`, `init`, `res`, `mult`), the values are horizontally concatenated and in column major order, i.e. in "lexicographical" order.
