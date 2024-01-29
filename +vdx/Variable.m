@@ -15,10 +15,11 @@ classdef Variable < handle &...
 
     methods(Access=public)
         function obj = Variable(vector, solver)
-            obj.indices = {};
+            obj.indices = cell(0,1);
             obj.vector = vector;
             obj.solver = obj.solver;
         end
+        
         function out = cat(dim,varargin)
             error('Concatenation not supported')
         end
@@ -26,6 +27,11 @@ classdef Variable < handle &...
         function varargout = size(obj,varargin)
             varargout = size(obj.indices, varargin{:});
             %TODO(anton) needs to return correct values for varargin
+        end
+        
+        function ind = end(obj,k,n)
+            sz = size(obj.indices);
+            ind = sz(k)-1;
         end
     end
 
@@ -149,15 +155,6 @@ classdef Variable < handle &...
     methods (Static, Access=public)
         function obj = empty()
             obj = NosnocVariable([],[]);
-        end
-
-        function ind = end(obj,k,n)
-            sz = size(obj.indices);
-            if k < n
-                ind = sz(k)-1;
-            else
-                ind = prod(sz(k:end));
-            end
         end
     end
 end
