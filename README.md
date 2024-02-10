@@ -1,6 +1,6 @@
 # VDX: Automatic Index Tracking for casADi NLPs
 VDX is a wrapper for the creation of generic casADi NLPs which provides automatic, transparent, index tracking facilities for named variable classes.
-It also provides a direct interface to casADi nlpsol and allows for automatic results extraction for the mentioned varable classes.
+It also provides a direct interface to casADi nlpsol and allows for automatic results extraction for the mentioned variable classes.
 ## Quickstart Guide for Users
 This section provides a quick overview for general users of how to use this tool.
 First we create a problem via:
@@ -65,10 +65,12 @@ stats = prob.solve();
 Once the solver is created and solve is called the `mult` and `res` fields of `w`, `g`, and `p` are populated with the multipliers and results of the last solver call.
 These values can be accessed as in the following example:
 ```Matlab
-x_result = prob.w.x(ii).res;
-y_result = prob.w.y(ii).res;
-lambda_x = prob.w.x(ii).mult;
-lambda_y = prob.w.y(ii).mult;
+full_result = prob.w.res;
+
+x_result = prob.w.x.res;
+y_i_result = prob.w.y(ii).res;
+lambda_x = prob.w.x.mult;
+lambda_y_ii = prob.w.y(ii).mult;
 ```
 
 ## Implementation Details and Notes
