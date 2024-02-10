@@ -124,6 +124,93 @@ classdef Vector < handle &...
             varargout = size(obj.w, varargin{:});
             %TODO(anton) needs to return correct values for varargin and perhaps other cases?
         end
+
+        function print(obj, varargin)
+            w = false;
+            lb = false;
+            ub = false;
+            init = false;
+            res = false;
+            mult = false;
+            if isempty(varargin)
+                w = true;
+                lb = true;
+                ub = true;
+                init = true;
+                res = true;
+                mult = true;
+            else
+                if any(ismember(lower(varargin), 'w'))
+                    w = true;
+                end
+                if any(ismember(lower(varargin), 'lb'))
+                    lb = true;
+                end
+                if any(ismember(lower(varargin), 'ub'))
+                    ub = true;
+                end
+                if any(ismember(lower(varargin), 'init'))
+                    init = true;
+                end
+                if any(ismember(lower(varargin), 'res'))
+                    res = true;
+                end
+                if any(ismember(lower(varargin), 'mult'))
+                    mult = true;
+                end
+            end
+
+            % Generate header
+            header = 'i\t\t';
+            if lb
+                header = [header 'lb\t\t'];
+            end
+            if ub
+                header = [header 'ub\t\t'];
+            end
+            if init
+                header = [header 'init\t\t'];
+            end
+            if res
+                header = [header 'res\t\t'];
+            end
+            if mult
+                header = [header 'mult\t\t'];
+            end
+            if w
+                header = [header 'sym\t\t'];
+            end
+            header = [header '\n'];
+            fprintf(header);
+
+            % iterate over all requested values
+            n = size(obj.w, 1);
+            output = [];
+            for ii=1:n
+                pline = [num2str(ii) '\t\t'];
+                if lb
+                    pline = [pline sprintf('%-8.5g\t', obj.lb(ii))];
+                end
+                if ub
+                    pline = [pline sprintf('%-8.5g\t', obj.ub(ii))];
+                end
+                if init
+                    pline = [pline sprintf('%-8.5g\t', obj.init(ii))];
+                end
+                if res
+                    pline = [pline sprintf('%-8.5g\t', obj.res(ii))];
+                end
+                if mult
+                    pline = [pline sprintf('%-8.5g\t', obj.mult(ii))];
+                end
+                if w
+                    pline = [pline char(formattedDisplayText(obj.w(ii)))];
+                end
+                pline = [pline, '\n'];
+                output = [output pline];
+            end
+            fprintf(output);
+        end
     end
     
     methods (Access=protected)

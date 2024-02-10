@@ -33,6 +33,93 @@ classdef Variable < handle &...
             sz = size(obj.indices);
             ind = sz(k)-1;
         end
+
+        function output = print(obj, varargin)
+        % TODO(@anton)
+            w = false;
+            lb = false;
+            ub = false;
+            init = false;
+            res = false;
+            mult = false;
+            if isempty(varargin)
+                w = true;
+                lb = true;
+                ub = true;
+                init = true;
+                res = true;
+                mult = true;
+            else
+                if any(ismember(lower(varargin), 'w'))
+                    w = true;
+                end
+                if any(ismember(lower(varargin), 'lb'))
+                    lb = true;
+                end
+                if any(ismember(lower(varargin), 'ub'))
+                    ub = true;
+                end
+                if any(ismember(lower(varargin), 'init'))
+                    init = true;
+                end
+                if any(ismember(lower(varargin), 'res'))
+                    res = true;
+                end
+                if any(ismember(lower(varargin), 'mult'))
+                    mult = true;
+                end
+            end
+
+            % Generate header
+            header = 'i\t\t';
+            if lb
+                header = [header 'lb\t\t'];
+            end
+            if ub
+                header = [header 'ub\t\t'];
+            end
+            if init
+                header = [header 'init\t\t'];
+            end
+            if res
+                header = [header 'res\t\t'];
+            end
+            if mult
+                header = [header 'mult\t\t'];
+            end
+            if w
+                header = [header 'sym\t\t'];
+            end
+            header = [header '\n'];
+
+            % iterate over all requested values
+            indices = sort([obj.indices{:}]);
+            output = header;
+            for ii=indices
+                pline = [num2str(ii) '\t\t'];
+                if lb
+                    pline = [pline sprintf('%-8.5g\t', obj.vector.lb(ii))];
+                end
+                if ub
+                    pline = [pline sprintf('%-8.5g\t', obj.vector.ub(ii))];
+                end
+                if init
+                    pline = [pline sprintf('%-8.5g\t', obj.vector.init(ii))];
+                end
+                if res
+                    pline = [pline sprintf('%-8.5g\t', obj.vector.res(ii))];
+                end
+                if mult
+                    pline = [pline sprintf('%-8.5g\t', obj.vector.mult(ii))];
+                end
+                if w
+                    pline = [pline char(formattedDisplayText(obj.vector.w(ii)))];
+                end
+                pline = [pline, '\n'];
+                output = [output pline];
+            end
+            fprintf(output);
+        end
     end
 
     methods (Access=protected)
