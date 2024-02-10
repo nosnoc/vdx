@@ -13,6 +13,42 @@ classdef Variable < handle &...
         solver
     end
 
+    properties (Dependent)
+        lb
+        ub
+        init
+        res
+        mult
+    end
+    
+    methods
+        function out = get.lb(obj)
+            out = cellfun(@(x) obj.vector.lb(x), obj.indices, 'uni', false);
+            out = permute(out, ndims(out):-1:1);
+            out = [out{:}];
+        end
+        function out = get.ub(obj)
+            out = cellfun(@(x) obj.vector.ub(x), obj.indices, 'uni', false);
+            out = permute(out, ndims(out):-1:1);
+            out = [out{:}];
+        end
+        function out = get.init(obj)
+            out = cellfun(@(x) obj.vector.init(x), obj.indices, 'uni', false);
+            out = permute(out, ndims(out):-1:1);
+            out = [out{:}];
+        end
+        function out = get.res(obj)
+            out = cellfun(@(x) obj.vector.res(x), obj.indices, 'uni', false);
+            out = permute(out, ndims(out):-1:1);
+            out = [out{:}];
+        end
+        function out = get.mult(obj)
+            out = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
+            out = permute(out, ndims(out):-1:1);
+            out = [out{:}];
+        end
+    end
+
     methods(Access=public)
         function obj = Variable(vector, solver)
             obj.indices = cell(0,1);
@@ -33,9 +69,8 @@ classdef Variable < handle &...
             sz = size(obj.indices);
             ind = sz(k)-1;
         end
-
+        
         function output = print(obj, varargin)
-        % TODO(@anton)
             w = false;
             lb = false;
             ub = false;
