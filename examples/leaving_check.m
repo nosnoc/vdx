@@ -10,11 +10,12 @@ data.x = x;
 data.lbx = [-inf;-inf];
 data.ubx = [inf;inf];
 data.x0 = [0.015;-0.25];
+%data.x0 = [0.05;-0.249];
 data.u = [];
 data.lbu = [];
 data.ubu = [];
 data.u0 = [];
-data.c = [x(2)+0.25;-x(2) - (x(1)+0.5)^2 + 1];
+data.c = [x(2)+0.25];
 data.f_x = [x(2); -x(1)];
 data.f_q = 0;
 data.f_q_T = 0;
@@ -22,7 +23,7 @@ data.f_q_T = 0;
 data.T = T;
 data.N_stages = 1;
 data.N_fe = 2;
-data.n_s = 1;
+data.n_s = 2;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';
@@ -34,7 +35,7 @@ prob.generate_constraints();
 
 default_tol = 1e-12;
 
-opts_casadi_nlp.ipopt.print_level = 2;
+opts_casadi_nlp.ipopt.print_level = 5;
 opts_casadi_nlp.print_time = 0;
 opts_casadi_nlp.ipopt.sb = 'yes';
 opts_casadi_nlp.verbose = false;

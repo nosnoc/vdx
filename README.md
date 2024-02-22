@@ -21,7 +21,7 @@ The following example produces the `x` and `y` variables of hanging masses in a 
 ```Matlab
 prob = vdx.Problem();
 lbx = 0; ubx = 10;
-lby = -10; ubx = 10;
+lby = -10; uby = 10;
 for ii=1:n_masses
 	x = SX.sym(['x_' num2str(ii)], 1);
 	y = SX.sym(['y_' num2str(ii)], 1);

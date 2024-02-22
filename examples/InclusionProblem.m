@@ -4,6 +4,8 @@ classdef InclusionProblem < vdx.Problem
         opts
         eta_vec
         eta_fun
+        G_fun
+        H_fun
     end
     
     methods (Access=public)
@@ -45,6 +47,9 @@ classdef InclusionProblem < vdx.Problem
                     for kk=1:data.n_s
                         obj.w.x(ii,jj,kk) = {{['x_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_x}, data.lbx, data.ubx, data.x0};
                         obj.w.lambda(ii,jj,kk) = {{['lambda_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
+                        obj.w.c_dot_p(ii,jj,kk) = {{['c_dot_p_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
+                        obj.w.c_dot_n(ii,jj,kk) = {{['c_dot_n_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
+                        obj.w.alpha(ii,jj,kk) = {{['alpha_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,1};
                     end
                 end
             end
@@ -52,7 +57,7 @@ classdef InclusionProblem < vdx.Problem
 
         function generate_constraints(obj)
             import casadi.*
-            [B, C, D, tau_root] = generate_butcher_tableu_integral(obj.data.n_s, obj.data.irk_scheme);
+            [B, C, D, tau_root] = generate_butcher_tableu_integral(obj.data.n_s, obj.data.irk_scheme)
             n_x = length(obj.data.x);
             n_u = length(obj.data.u);
             n_c = length(obj.data.c);
@@ -76,6 +81,7 @@ classdef InclusionProblem < vdx.Problem
             f_q_fun = Function('q_fun', {obj.data.x,obj.data.u}, {obj.data.f_q});
             f_q_T_fun = Function('q_fun', {obj.data.x}, {obj.data.f_q_T});
             c_fun = Function('c_fun', {obj.data.x}, {obj.data.c});
+            c_dot_fun = Function('c_dot_fun', {obj.data.x,obj.data.u,lambda}, {nabla_c'*obj.data.f_x});
             x_prev = obj.w.x(0,0,obj.data.n_s);
             for ii=1:obj.data.N_stages
                 ui = obj.w.u(ii);
@@ -97,6 +103,11 @@ classdef InclusionProblem < vdx.Problem
                             x_ijr = obj.w.x(ii,jj,rr);
                             xk = xk + C(rr+1, kk+1) * x_ijr;
                         end
+                        c_dot_p_ijk = obj.w.c_dot_p(ii,jj,kk);
+                        c_dot_n_ijk = obj.w.c_dot_n(ii,jj,kk);
+                        alpha_ijk = obj.w.alpha(ii,jj,kk);
+                        obj.g.separate_c_dot(ii,jj,kk) = {c_dot_fun(x_ijk,ui,lambda_ijk) - c_dot_p_ijk + c_dot_n_ijk};
+                        obj.g.alpha_complementarity(ii,jj,kk) = {vertcat(alpha_ijk*c_dot_p_ijk - obj.p.sigma(1), (1-alpha_ijk)*c_dot_n_ijk-obj.p.sigma(1)), -inf,0};
                         obj.g.dynamics(ii,jj,kk) = {h * fj - xk};
                         % also add non-negativity constraint on c
                         obj.g.c_nonnegative(ii,jj,kk) = {c_fun(x_ijk), 0, inf};
@@ -144,23 +155,26 @@ classdef InclusionProblem < vdx.Problem
             
             % Do Cross-Complementarity
             x_prev = obj.w.x(0,0,obj.data.n_s);
+            c_dot_p_prev = 0; % TODO
             G = [];
             H = [];
             for ii=1:obj.data.N_stages
                 for jj=1:obj.data.N_fe
                     if obj.opts.use_fesd
-                        Gij = c_fun(x_prev);
+                        Gij = c_fun(x_prev) + c_dot_p_prev;
                         Hij = 0;
                         for kk=1:obj.data.n_s
                             x_ijk = obj.w.x(ii,jj,kk);
+                            c_dot_p_ijk = obj.w.c_dot_p(ii,jj,kk);
                             lambda_ijk = obj.w.lambda(ii,jj,kk);
-                            Gij = Gij + c_fun(x_ijk);
+                            Gij = Gij + c_fun(x_ijk) + c_dot_p_ijk;
                             Hij = Hij + lambda_ijk;
                         end
                         G = [G;Gij];
                         H = [H;Hij];
                         obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - obj.p.sigma(1)), -inf, 0};
                         x_prev = obj.w.x(ii,jj,obj.data.n_s);
+                        c_dot_p_prev = obj.w.c_dot_p(ii,jj,obj.data.n_s);
                     else
                         Gij = [];
                         Hij = [];
@@ -176,6 +190,8 @@ classdef InclusionProblem < vdx.Problem
                     end
                 end
             end
+            obj.G_fun = Function('G_fun',{obj.w.w},{G});
+            obj.H_fun = Function('H_fun',{obj.w.w},{H});
 
             
             % Do Step equilibration (only heuristic for now)

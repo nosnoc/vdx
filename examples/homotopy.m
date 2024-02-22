@@ -4,7 +4,7 @@ function success = homotopy(prob,slope)
     end
     sigma_k = 1;
     all_stats = [];
-    while sigma_k >= 1e-9
+    while sigma_k >= 1e-12
         prob.p.sigma(1).init = sigma_k;
         stats = prob.solve();
         sigma_k = slope*sigma_k;
