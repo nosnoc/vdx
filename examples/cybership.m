@@ -35,7 +35,8 @@ data.N_fe = 3;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 
-opts.step_eq = 'direct';
+opts.step_eq = 'heuristic_mean';
+opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, opts);
 
@@ -70,11 +71,8 @@ prob.w.x(0,0,data.n_s).lb = data.x0;
 prob.w.x(0,0,data.n_s).ub = data.x0;
 homotopy(prob);
 %% plot
-x_res = prob.w.x(0:data.N_stages,0:data.N_fe,data.n_s).res';
-x_res = [x_res{:}];
-u_res = prob.w.u(1:data.N_stages).res';
-u_res = [u_res{:}];
-h_res = prob.w.h(:,:).res';
-h_res = [h_res{:}];
+x_res = prob.w.x(0:data.N_stages,0:data.N_fe,data.n_s).res;
+u_res = prob.w.u(1:data.N_stages).res;
+h_res = prob.w.h(:,:).res;
 t_res = [0,cumsum(h_res)]
 plot_discs(h_res,x_res,[3.5,3.5], ["circle", "circle"])

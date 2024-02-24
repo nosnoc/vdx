@@ -6,6 +6,8 @@ classdef InclusionProblem < vdx.Problem
         eta_fun
         G_fun
         H_fun
+
+        comp_res_fun
     end
     
     methods (Access=public)
@@ -20,14 +22,17 @@ classdef InclusionProblem < vdx.Problem
             if ~isfield(obj.opts,'comp_scale')
                 obj.opts.comp_scale = 1;
             end
+            if ~isfield(obj.opts,'elastic_ell_inf')
+                obj.opts.elastic_ell_inf = 0;
+            end
             % get dimensions
             n_x = length(data.x);
             n_u = length(data.u);
             n_c = length(data.c);
 
-            % if opts.elastic_ell_inf
-            %     obj.w.s_elastic(1) = {{'s_elastic',1},0,inf,0};
-            % end
+            if obj.opts.elastic_ell_inf
+                obj.w.s_elastic(1) = {{'s_elastic',1},0,inf,0};
+            end
             obj.p.sigma(1) = {{'sigma',1},0,inf,0};
             obj.p.gamma_h(1) = {{'gamma_h',1},0,inf,0.1};
             obj.p.T(1) = {{'T',1},0,inf,data.T};
@@ -70,6 +75,11 @@ classdef InclusionProblem < vdx.Problem
                 h0 = obj.p.T(1).init/(obj.data.N_stages*obj.data.N_fe);
             end
             
+            if obj.opts.elastic_ell_inf
+                sigma = obj.w.s_elastic(1);
+            else
+                sigma = obj.p.sigma(1);
+            end
             % Define functions from obj.data
             lambda = SX.sym('lambda', n_c);
 
@@ -107,7 +117,7 @@ classdef InclusionProblem < vdx.Problem
                         c_dot_n_ijk = obj.w.c_dot_n(ii,jj,kk);
                         alpha_ijk = obj.w.alpha(ii,jj,kk);
                         obj.g.separate_c_dot(ii,jj,kk) = {c_dot_fun(x_ijk,ui,lambda_ijk) - c_dot_p_ijk + c_dot_n_ijk};
-                        obj.g.alpha_complementarity(ii,jj,kk) = {vertcat(alpha_ijk*c_dot_p_ijk - obj.p.sigma(1), (1-alpha_ijk)*c_dot_n_ijk-obj.p.sigma(1)), -inf,0};
+                        obj.g.alpha_complementarity(ii,jj,kk) = {alpha_ijk.*c_dot_p_ijk - sigma, -inf,0};
                         obj.g.dynamics(ii,jj,kk) = {h * fj - xk};
                         % also add non-negativity constraint on c
                         obj.g.c_nonnegative(ii,jj,kk) = {c_fun(x_ijk), 0, inf};
@@ -136,7 +146,7 @@ classdef InclusionProblem < vdx.Problem
                 cx = c_fun(x);
                 obj.w.c_ind(0,0,obj.data.n_s) = {{'c_ind_0', n_c}, 0, 1, 0};
                 c_ind = obj.w.c_ind(0,0,obj.data.n_s);
-                obj.g.c_ind_comp(0,0,obj.data.n_s) = {cx.*c_ind - obj.p.sigma(1), -inf, 0};
+                obj.g.c_ind_comp(0,0,obj.data.n_s) = {cx.*c_ind - sigma, -inf, 0};
                 obj.f = obj.f + sum1(1e-2*obj.p.gamma_h(1)*(c_ind-1).^2);
                 for ii=1:obj.data.N_stages
                     for jj=1:obj.data.N_fe
@@ -145,7 +155,7 @@ classdef InclusionProblem < vdx.Problem
                             cx = c_fun(x);
                             obj.w.c_ind(ii,jj,kk) = {{['c_ind_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c}, 0, inf, 0};
                             c_ind = obj.w.c_ind(ii,jj,kk);
-                            obj.g.c_ind_comp(ii,jj,kk) = {cx.*c_ind - obj.p.sigma(1), -inf, 0};
+                            obj.g.c_ind_comp(ii,jj,kk) = {cx.*c_ind - sigma, -inf, 0};
                             obj.f = obj.f + sum1(1e-2*obj.p.gamma_h(1)*(c_ind-1).^2);
                         end
                     end
@@ -155,26 +165,27 @@ classdef InclusionProblem < vdx.Problem
             
             % Do Cross-Complementarity
             x_prev = obj.w.x(0,0,obj.data.n_s);
-            c_dot_p_prev = 0; % TODO
+            c_dot_n_prev = zeros(n_c,1); % TODO
             G = [];
             H = [];
             for ii=1:obj.data.N_stages
                 for jj=1:obj.data.N_fe
                     if obj.opts.use_fesd
-                        Gij = c_fun(x_prev) + c_dot_p_prev;
+                        Gij = vertcat(c_fun(x_prev),c_dot_n_prev);
                         Hij = 0;
                         for kk=1:obj.data.n_s
                             x_ijk = obj.w.x(ii,jj,kk);
-                            c_dot_p_ijk = obj.w.c_dot_p(ii,jj,kk);
+                            c_dot_n_ijk = obj.w.c_dot_n(ii,jj,kk);
+                            alpha_ijk = obj.w.alpha(ii,jj,kk);
                             lambda_ijk = obj.w.lambda(ii,jj,kk);
-                            Gij = Gij + c_fun(x_ijk) + c_dot_p_ijk;
-                            Hij = Hij + lambda_ijk;
+                            Gij = Gij + vertcat(c_fun(x_ijk), c_dot_n_ijk);
+                            Hij = Hij + vertcat(lambda_ijk, 1-alpha_ijk);
                         end
                         G = [G;Gij];
                         H = [H;Hij];
-                        obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - obj.p.sigma(1)), -inf, 0};
+                        obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - sigma), -inf, 0};
                         x_prev = obj.w.x(ii,jj,obj.data.n_s);
-                        c_dot_p_prev = obj.w.c_dot_p(ii,jj,obj.data.n_s);
+                        c_dot_n_prev = obj.w.c_dot_n(ii,jj,obj.data.n_s);
                     else
                         Gij = [];
                         Hij = [];
@@ -186,7 +197,7 @@ classdef InclusionProblem < vdx.Problem
                         end
                         G = [G;Gij];
                         H = [H;Hij];
-                        obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - obj.p.sigma(1)), -inf, 0};
+                        obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - sigma), -inf, 0};
                     end
                 end
             end
@@ -291,7 +302,7 @@ classdef InclusionProblem < vdx.Problem
                         eta_vec = [eta_vec;eta];
                         obj.eta_vec = eta_vec;
                         delta_h = obj.w.h(ii,1) - obj.w.h(ii-1,jj);
-                        homotopy_eq = [eta*delta_h - obj.p.sigma(1);eta*delta_h + obj.p.sigma(1)];
+                        homotopy_eq = [eta*delta_h - sigma;eta*delta_h + sigma];
                         obj.g.step_equilibration(ii,1) = {homotopy_eq, [-inf;0], [0;inf]};
                     end
                     for jj=2:obj.data.N_fe
@@ -318,7 +329,7 @@ classdef InclusionProblem < vdx.Problem
                         eta_vec = [eta_vec;eta];
                         obj.eta_vec = eta_vec;
                         delta_h = obj.w.h(ii,jj) - obj.w.h(ii,jj-1);
-                        homotopy_eq = [eta*delta_h - obj.p.sigma(1);eta*delta_h + obj.p.sigma(1)];
+                        homotopy_eq = [eta*delta_h - sigma;eta*delta_h + sigma];
                         obj.g.step_equilibration(ii,jj) = {homotopy_eq, [-inf;0], [0;inf]};
                     end
                 end
@@ -329,6 +340,12 @@ classdef InclusionProblem < vdx.Problem
               case 'none'
                 % Do nothing
             end
+
+            if obj.opts.elastic_ell_inf
+                obj.f = obj.f + obj.w.s_elastic(1)*1/obj.p.sigma(1);
+            end
+
+            obj.comp_res_fun = Function('comp_res', {obj.w.w, obj.p.w}, {max(G.*H)});
         end
     end
 end

@@ -23,12 +23,13 @@ data.f_q_T = 0;
 
 data.T = t_step;
 data.N_stages = 1;
-data.N_fe = 2;
-data.n_s = 1;
+data.N_fe = 3;
+data.n_s = 2;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';
 opts.use_fesd = true;
+opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, opts);
 
@@ -76,16 +77,12 @@ for step=1:N_sim
     end
     x_curr = prob.w.x(1,data.N_fe,data.n_s).res;
     x_sim = prob.w.x(1,:,data.n_s).res;
-    x_sim = [x_sim{:}];
-    x_sim_long = prob.w.x(1,:,:).res';
-    x_sim_long = [x_sim_long{:}];
+    x_sim_long = prob.w.x(1,:,:).res;
     %c_ind_sim = prob.w.c_ind(1,:,:).res';
     %c_ind_sim = [c_ind_sim{:}];
-    lambda_sim = prob.w.lambda(1,:,:).res';
-    lambda_sim = [lambda_sim{:}];
+    lambda_sim = prob.w.lambda(1,:,:).res;
     if opts.use_fesd
         h_sim = prob.w.h(1,:).res;
-        h_sim = [h_sim{:}];
     else
         h_sim = prob.p.T(1).init/(data.N_fe)*ones(data.N_fe,1)';
     end

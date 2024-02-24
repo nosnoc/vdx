@@ -23,11 +23,12 @@ data.f_q_T = 0;
 data.T = T;
 data.N_stages = 1;
 data.N_fe = 2;
-data.n_s = 2;
+data.n_s = 1;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';
 opts.use_fesd = true;
+opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, opts);
 
@@ -35,7 +36,7 @@ prob.generate_constraints();
 
 default_tol = 1e-12;
 
-opts_casadi_nlp.ipopt.print_level = 5;
+opts_casadi_nlp.ipopt.print_level = 0;
 opts_casadi_nlp.print_time = 0;
 opts_casadi_nlp.ipopt.sb = 'yes';
 opts_casadi_nlp.verbose = false;
