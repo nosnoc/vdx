@@ -24,12 +24,12 @@ data.u = [u1];
 data.lbu = [-100/sqrt(2);-100/sqrt(2)];
 data.ubu = [100/sqrt(2);100/sqrt(2)];
 data.u0 = [0;0];
-p = 6;
+p = 4;
 data.c = [sum((R_matrix*(x1-x2(1:2))).^p)-(R+R_obj)^p];
 data.f_x = [u1;0;0;0];
 
 % costs
-data.f_q = 1e-4*norm_2(data.u)^2;
+data.f_q = 1e0*norm_2(data.u)^2 + (x-x_target)'*diag([0,0,1,1,1])*(x-x_target);
 data.f_q_T = (x-x_target)'*diag([1e-6,1e-6,1e3,1e3,1e3])*(x-x_target);
 
 data.T = T;
@@ -39,14 +39,14 @@ data.n_s = 2;
 data.irk_scheme = 'radau';
 
 opts = struct();
-opts.elastic_ell_inf = 0;
+%opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, opts);
 
 prob.generate_constraints();
 
 %% create solver
-default_tol = 1e-7;
+default_tol = 1e-6;
 
 %opts_casadi_nlp.ipopt.print_level = 1;
 opts_casadi_nlp.print_time = 0;
@@ -72,7 +72,7 @@ prob.create_solver(opts_casadi_nlp);
 prob.w.x(0,0,data.n_s).init = data.x0;
 prob.w.x(0,0,data.n_s).lb = data.x0;
 prob.w.x(0,0,data.n_s).ub = data.x0;
-homotopy(prob);
+homotopy(prob,100,1e-6);
 %% plot
 x_res = prob.w.x(0:data.N_stages,0:data.N_fe,data.n_s).res;
 u_res = prob.w.u(1:data.N_stages).res;

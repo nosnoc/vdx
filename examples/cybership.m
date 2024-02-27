@@ -36,7 +36,7 @@ data.n_s = 2;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';
-opts.elastic_ell_inf = 1;
+%opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, opts);
 
@@ -45,7 +45,7 @@ prob.generate_constraints();
 %% create solver
 default_tol = 1e-12;
 
-%opts_casadi_nlp.ipopt.print_level = 1;
+opts_casadi_nlp.ipopt.print_level = 1;
 opts_casadi_nlp.print_time = 0;
 opts_casadi_nlp.ipopt.sb = 'yes';
 opts_casadi_nlp.verbose = false;

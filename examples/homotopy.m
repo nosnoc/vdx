@@ -1,10 +1,15 @@
-function success = homotopy(prob,slope)
+function success = homotopy(prob,sigma_0,comp_tol,slope)
     if ~exist('slope')
         slope = 0.1;
     end
+    if ~exist('comp_tol') 
+        comp_tol = 1e-9;
+    end
+    if ~exist('sigma_0') 
+        sigma_0 = 1;
+    end
     sigma_k = 1;
     all_stats = [];
-    comp_tol = 1e-7;
     while sigma_k >= comp_tol
         prob.p.sigma(1).init = sigma_k;
         stats = prob.solve();

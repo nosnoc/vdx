@@ -3,7 +3,7 @@ close all
 import casadi.*
 import vdx.*
 
-T = 1;
+T = 2;
 R = 3.5;
 R_obj = 1.5;
 %% Define projected system
@@ -11,7 +11,7 @@ x1 = SX.sym('x1', 2);
 x2 = SX.sym('x2', 2);
 x3 = SX.sym('x3', 2);
 x = [x1;x2;x3];
-x_target = [-10;0;10;0;10;10];
+x_target = [-10;0;10;0;30;10];
 data.x = x;
 data.lbx = [-inf;-inf;0;-inf;-inf;-inf];
 data.ubx = [0;inf;inf;inf;inf;inf];
@@ -30,10 +30,13 @@ data.f_q = 1e-4*norm_2(data.u)^2;
 data.f_q_T = (x-x_target)'*diag([1e-6,1e-6,1e-6,1e-6,1e3,1e3])*(x-x_target);
 
 data.T = T;
-data.N_stages = 25;
+data.N_stages = 50;
 data.N_fe = 3;
 data.n_s = 2;
 data.irk_scheme = 'radau';
+
+opts.step_eq = 'heuristic_mean';
+opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, struct);
 
