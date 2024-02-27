@@ -7,6 +7,8 @@ classdef InclusionProblem < vdx.Problem
         G_fun
         H_fun
 
+        c_fun
+
         comp_res_fun
     end
     
@@ -26,9 +28,9 @@ classdef InclusionProblem < vdx.Problem
                 obj.opts.elastic_ell_inf = 0;
             end
             % get dimensions
-            n_x = length(data.x);
             n_u = length(data.u);
             n_c = length(data.c);
+            n_x = length(data.x);
 
             if obj.opts.elastic_ell_inf
                 obj.w.s_elastic(1) = {{'s_elastic',1},0,inf,0};
@@ -43,6 +45,8 @@ classdef InclusionProblem < vdx.Problem
             h0 = t_stage/data.N_fe;
             
             obj.w.x(0,0,data.n_s) = {{['x_0'], n_x}};
+            obj.w.alpha(0,0,data.n_s) = {{['alpha_0'], n_c}, 0, 0, 0};
+            obj.w.beta(0,0,data.n_s) = {{['beta_0'], n_c}, 0, 0, 0};
             for ii=1:data.N_stages
                 obj.w.u(ii) = {{['u_' num2str(ii)], n_u}, data.lbu, data.ubu, data.u0};
                 for jj=1:data.N_fe
@@ -52,9 +56,8 @@ classdef InclusionProblem < vdx.Problem
                     for kk=1:data.n_s
                         obj.w.x(ii,jj,kk) = {{['x_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_x}, data.lbx, data.ubx, data.x0};
                         obj.w.lambda(ii,jj,kk) = {{['lambda_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
-                        obj.w.c_dot_p(ii,jj,kk) = {{['c_dot_p_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
-                        obj.w.c_dot_n(ii,jj,kk) = {{['c_dot_n_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
-                        obj.w.alpha(ii,jj,kk) = {{['alpha_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,1};
+                        obj.w.alpha(ii,jj,kk) = {{['alpha_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
+                        obj.w.beta(ii,jj,kk) = {{['beta_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_c},0,inf};
                     end
                 end
             end
@@ -82,17 +85,23 @@ classdef InclusionProblem < vdx.Problem
             end
             % Define functions from obj.data
             lambda = SX.sym('lambda', n_c);
+            alpha = SX.sym('alpha', n_c);
+            beta = SX.sym('beta', n_c);
 
             nabla_c = obj.data.c.jacobian(obj.data.x)';
 
             f_x = obj.data.f_x + nabla_c*lambda;
+            f_x = [f_x; obj.data.c; lambda];
 
             f_x_fun = Function('f_x_fun', {obj.data.x,obj.data.u,lambda}, {f_x});
             f_q_fun = Function('q_fun', {obj.data.x,obj.data.u}, {obj.data.f_q});
             f_q_T_fun = Function('q_fun', {obj.data.x}, {obj.data.f_q_T});
             c_fun = Function('c_fun', {obj.data.x}, {obj.data.c});
+            obj.c_fun = c_fun;
             c_dot_fun = Function('c_dot_fun', {obj.data.x,obj.data.u,lambda}, {nabla_c'*obj.data.f_x});
             x_prev = obj.w.x(0,0,obj.data.n_s);
+            alpha_prev = obj.w.alpha(0,0,obj.data.n_s);
+            beta_prev = obj.w.beta(0,0,obj.data.n_s);
             for ii=1:obj.data.N_stages
                 ui = obj.w.u(ii);
                 sum_h = 0;
@@ -108,16 +117,13 @@ classdef InclusionProblem < vdx.Problem
                         lambda_ijk = obj.w.lambda(ii,jj,kk);
                         fj = f_x_fun(x_ijk,ui,lambda_ijk);
                         qj = f_q_fun(x_ijk,ui);
-                        xk = C(1, kk+1) * x_prev;
+                        xk = C(1, kk+1) * [x_prev;alpha_prev;beta_prev];
                         for rr=1:obj.data.n_s
                             x_ijr = obj.w.x(ii,jj,rr);
-                            xk = xk + C(rr+1, kk+1) * x_ijr;
+                            alpha_ijr = obj.w.alpha(ii,jj,rr);
+                            beta_ijr = obj.w.beta(ii,jj,rr);
+                            xk = xk + C(rr+1, kk+1) * [x_ijr;alpha_ijr;beta_ijr];
                         end
-                        c_dot_p_ijk = obj.w.c_dot_p(ii,jj,kk);
-                        c_dot_n_ijk = obj.w.c_dot_n(ii,jj,kk);
-                        alpha_ijk = obj.w.alpha(ii,jj,kk);
-                        obj.g.separate_c_dot(ii,jj,kk) = {c_dot_fun(x_ijk,ui,lambda_ijk) - c_dot_p_ijk + c_dot_n_ijk};
-                        obj.g.alpha_complementarity(ii,jj,kk) = {alpha_ijk.*c_dot_p_ijk - sigma, -inf,0};
                         obj.g.dynamics(ii,jj,kk) = {h * fj - xk};
                         % also add non-negativity constraint on c
                         obj.g.c_nonnegative(ii,jj,kk) = {c_fun(x_ijk), 0, inf};
@@ -125,6 +131,8 @@ classdef InclusionProblem < vdx.Problem
                         obj.f = obj.f + B(kk+1)*h*qj;
                     end
                     x_prev = obj.w.x(ii,jj,obj.data.n_s);
+                    alpha_prev = obj.w.alpha(ii,jj,obj.data.n_s);
+                    beta_prev = obj.w.beta(ii,jj,obj.data.n_s);
                 end
                 if obj.opts.use_fesd
                     obj.g.sum_h(ii) = {t_stage-sum_h};
@@ -165,27 +173,36 @@ classdef InclusionProblem < vdx.Problem
             
             % Do Cross-Complementarity
             x_prev = obj.w.x(0,0,obj.data.n_s);
-            c_dot_n_prev = zeros(n_c,1); % TODO
+            alpha_prev = obj.w.alpha(0,0,obj.data.n_s);
+            beta_prev = obj.w.beta(0,0,obj.data.n_s);
             G = [];
             H = [];
             for ii=1:obj.data.N_stages
                 for jj=1:obj.data.N_fe
                     if obj.opts.use_fesd
-                        Gij = vertcat(c_fun(x_prev),c_dot_n_prev);
+                        Gij = c_fun(x_prev);
                         Hij = 0;
                         for kk=1:obj.data.n_s
                             x_ijk = obj.w.x(ii,jj,kk);
-                            c_dot_n_ijk = obj.w.c_dot_n(ii,jj,kk);
-                            alpha_ijk = obj.w.alpha(ii,jj,kk);
                             lambda_ijk = obj.w.lambda(ii,jj,kk);
-                            Gij = Gij + vertcat(c_fun(x_ijk), c_dot_n_ijk);
-                            Hij = Hij + vertcat(lambda_ijk, 1-alpha_ijk);
+                            Gij = Gij + c_fun(x_ijk);
+                            Hij = Hij + lambda_ijk;
                         end
-                        G = [G;Gij];
-                        H = [H;Hij];
+                        delta_alpha = obj.w.alpha(ii,jj,obj.data.n_s) - alpha_prev;
+                        delta_beta = obj.w.beta(ii,jj, obj.data.n_s) - beta_prev;
+
+                        Gij = [Gij;delta_alpha];
+                        Hij = [Hij;delta_beta];
+                        G = [G;delta_alpha];
+                        H = [H;delta_beta];
+
+                        % add delta non-negativity
+                        obj.g.delta_nonnegative(ii,jj) = {[delta_alpha; delta_beta], 0, inf};
+                        
+                        alpha_prev = obj.w.alpha(ii,jj,obj.data.n_s);
+                        beta_prev = obj.w.beta(ii,jj, obj.data.n_s);
                         obj.g.complementarity(ii,jj) = {obj.opts.comp_scale*(Gij.*Hij - sigma), -inf, 0};
                         x_prev = obj.w.x(ii,jj,obj.data.n_s);
-                        c_dot_n_prev = obj.w.c_dot_n(ii,jj,obj.data.n_s);
                     else
                         Gij = [];
                         Hij = [];

@@ -3,7 +3,7 @@ close all
 import casadi.*
 import vdx.*
 
-T = 2.5;
+T = 5;
 N_sim = 13;
 t_step = T/N_sim;
 %% Define (uncontrolled for now) projected system
@@ -11,24 +11,25 @@ x = SX.sym('x', 2);
 data.x = x;
 data.lbx = [-inf;-inf];
 data.ubx = [inf;inf];
-data.x0 = [0.3;-0.25];
+data.x0 = [sqrt(2);sqrt(2)];
 data.u = [];
 data.lbu = [];
 data.ubu = [];
 data.u0 = [];
-data.c = [x(2)+0.25;-x(2) - (x(1)+0.5)^2 + 1];
+data.c = [x(2)+1];
 data.f_x = [x(2); -x(1)];
 data.f_q = 0;
 data.f_q_T = 0;
 
 data.T = t_step;
 data.N_stages = 1;
-data.N_fe = 3;
+data.N_fe = 2;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';
 opts.use_fesd = true;
+%opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, opts);
 
@@ -79,16 +80,12 @@ for step=1:N_sim
     end
     x_curr = prob.w.x(1,data.N_fe,data.n_s).res;
     x_sim = prob.w.x(1,:,data.n_s).res;
-    x_sim = [x_sim{:}];
-    x_sim_long = prob.w.x(1,:,:).res';
-    x_sim_long = [x_sim_long{:}];
+    x_sim_long = prob.w.x(1,:,:).res;
     %c_ind_sim = prob.w.c_ind(1,:,:).res';
     %c_ind_sim = [c_ind_sim{:}];
-    lambda_sim = prob.w.lambda(1,:,:).res';
-    lambda_sim = [lambda_sim{:}];
+    lambda_sim = prob.w.lambda(1,:,:).res;
     if opts.use_fesd
         h_sim = prob.w.h(1,:).res;
-        h_sim = [h_sim{:}];
     else
         h_sim = prob.p.T(1).init/(data.N_fe)*ones(data.N_fe,1)';
     end
