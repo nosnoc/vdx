@@ -1,4 +1,5 @@
-function [prob,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
+function [prob,data,opts,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
+    import casadi.*
     t_step = T/N_sim;
     h = t_step/N_fe;
     %% Define (uncontrolled for now) projected system
@@ -6,12 +7,12 @@ function [prob,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
     data.x = x;
     data.lbx = [-inf;-inf];
     data.ubx = [inf;inf];
-    data.x0 = [0;0.5];
+    data.x0 = [sqrt(2);sqrt(2)];
     data.u = [];
     data.lbu = [];
     data.ubu = [];
     data.u0 = [];
-    data.c = [x(2)+0.25;-x(2) - (x(1)+0.5)^2 + 1];
+    data.c = [x(2)+1.0];
     data.f_x = [x(2); -x(1)];
     data.f_q = 0;
     data.f_q_T = 0;
@@ -23,13 +24,15 @@ function [prob,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
     data.irk_scheme = 'radau';
 
     opts.step_eq = 'heuristic_mean';
-    opts.use_fesd = false;
+    %opts.step_eq = 'direct_homotopy_with_penalty';
+    opts.use_fesd = use_fesd;
+    opts.elastic_ell_inf = true;
 
     prob = InclusionProblem(data, opts);
 
     prob.generate_constraints();
 
-    default_tol = 1e-12;
+    default_tol = 1e-10;
 
     opts_casadi_nlp.ipopt.print_level = 2;
     opts_casadi_nlp.print_time = 0;

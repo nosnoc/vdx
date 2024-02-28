@@ -1,4 +1,4 @@
-function success = homotopy(prob,sigma_0,comp_tol,slope)
+function [success,stats] = homotopy(prob,sigma_0,comp_tol,slope)
     if ~exist('slope')
         slope = 0.1;
     end
@@ -8,7 +8,7 @@ function success = homotopy(prob,sigma_0,comp_tol,slope)
     if ~exist('sigma_0') 
         sigma_0 = 1;
     end
-    sigma_k = 1;
+    sigma_k = sigma_0;
     all_stats = [];
     while sigma_k >= comp_tol
         prob.p.sigma(1).init = sigma_k;
@@ -18,13 +18,13 @@ function success = homotopy(prob,sigma_0,comp_tol,slope)
         comp_res = full(prob.comp_res_fun(prob.w.res,prob.p.init));
         fprintf(['sigma_k=' num2str(sigma_k) ' comp_res=' num2str(comp_res) '\n']);
         sigma_k = slope*sigma_k;
-        if comp_res < comp_tol
+        if comp_res < comp_tol && stats.success
             break
         end
     end
 
     success = stats.success;
     if ~success
-        1+1
+        fprintf([stats.return_status '\n']);
     end
 end
