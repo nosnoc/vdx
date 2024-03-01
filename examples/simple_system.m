@@ -23,7 +23,7 @@ data.f_q_T = 0;
 
 data.T = t_step;
 data.N_stages = 1;
-data.N_fe = 3;
+data.N_fe = 2;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 

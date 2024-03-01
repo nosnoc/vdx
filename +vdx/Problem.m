@@ -9,6 +9,8 @@ classdef Problem < handle &...
         p
         % Objective
         f
+        % objective value
+        f_result
     end
     properties (Access=public, NonCopyable)
         % Solver attached to problem
@@ -26,6 +28,7 @@ classdef Problem < handle &...
             obj.p = vdx.Vector(obj, -inf, inf, 0);
             obj.g = vdx.Vector(obj, 0, 0, 0);
             obj.f = 0;
+            obj.f_result = 0;
         end
 
         function create_solver(obj, casadi_options)
@@ -57,6 +60,7 @@ classdef Problem < handle &...
             obj.g.res = full(nlp_results.g);
             obj.g.mult = full(nlp_results.lam_g);
             obj.p.mult = full(nlp_results.lam_p);
+            obj.f_result = full(nlp_results.f);
             stats = obj.solver.stats;
         end
     end
