@@ -44,7 +44,7 @@ classdef InclusionProblem < vdx.Problem
             h0 = t_stage/data.N_fe;
             
             obj.w.x(0,0,data.n_s) = {{['x_0'], n_x}};
-            obj.w.lambda(0,0,data.n_s) = {{['lambda_0'], n_c}};
+            obj.w.lambda(0,0,data.n_s) = {{['lambda_0'], n_c},0,0};
             for ii=1:data.N_stages
                 obj.w.u(ii) = {{['u_' num2str(ii)], n_u}, data.lbu, data.ubu, data.u0};
                 for jj=1:data.N_fe

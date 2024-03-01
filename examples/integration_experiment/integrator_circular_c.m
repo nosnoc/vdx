@@ -1,4 +1,4 @@
-function [prob,data,opts,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
+function [prob,data,opts,h] = integrator_circular_c(T, N_sim, N_fe, use_fesd, n_s)
     import casadi.*
     t_step = T/N_sim;
     h = t_step/N_fe;
@@ -7,12 +7,12 @@ function [prob,data,opts,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
     data.x = x;
     data.lbx = [-inf;-inf];
     data.ubx = [inf;inf];
-    data.x0 = [sqrt(2);sqrt(2)];
+    data.x0 = [0;1];
     data.u = [];
     data.lbu = [];
     data.ubu = [];
     data.u0 = [];
-    data.c = [x(2)+1.0];
+    data.c = [1-(x(1)^2+(x(2)-0.5)^2)];
     data.f_x = [x(2); -x(1)];
     data.f_q = 0;
     data.f_q_T = 0;

@@ -1,5 +1,8 @@
-function plot_discs(h,pos,r,type)
+function plot_discs(h,pos,r,type,lim,fig,vidname)
     n = length(r);
+    if ~exist('lim')
+        lim = 50;
+    end
     if ~exist('type')
         type = [];
         for ii=1:n
@@ -21,10 +24,14 @@ function plot_discs(h,pos,r,type)
             curr_idx = curr_idx+3;
         end
     end
-    figure
+    if ~exist('fig')
+        fig = figure;
+    else
+        figure(fig)
+    end
     axis equal
-    xlim([-50,50])
-    ylim([-50,50])
+    xlim([-lim,lim])
+    ylim([-lim,lim])
     discs = {};
     tau = linspace(0, 2*pi)';
     rot = @(theta) [cos(theta) -sin(theta);...
@@ -41,6 +48,12 @@ function plot_discs(h,pos,r,type)
         end
         discs{ii} = patch(v(:,1),v(:,2),'g');
     end
+    if exist('vidname')
+        writer = VideoWriter(vidname);
+        open(writer);
+        frame = getframe(gca);
+        writeVideo(writer,frame)
+    end
     pause(h(1));
     for jj=2:(length(h))
         for ii=1:n
@@ -56,5 +69,12 @@ function plot_discs(h,pos,r,type)
         drawnow limitrate;
         %pause(h(jj));
         pause(0.1)
+        if exist('vidname')
+            frame = getframe(gca);
+            writeVideo(writer,frame);
+        end
+    end
+    if exist('vidname')
+        close(writer);
     end
 end

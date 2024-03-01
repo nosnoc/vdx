@@ -16,7 +16,9 @@ function [success,stats] = homotopy(prob,sigma_0,comp_tol,slope)
         prob.w.init = prob.w.res;
         all_stats = [all_stats, stats];
         comp_res = full(prob.comp_res_fun(prob.w.res,prob.p.init));
-        fprintf(['sigma_k=' num2str(sigma_k) ' comp_res=' num2str(comp_res) '\n']);
+        if ~stats.success
+            fprintf(['sigma_k=' num2str(sigma_k) ' comp_res=' num2str(comp_res) '\n']);
+        end
         sigma_k = slope*sigma_k;
         if comp_res < comp_tol && stats.success
             break

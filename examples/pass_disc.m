@@ -3,31 +3,31 @@ close all
 import casadi.*
 import vdx.*
 
-T = 2;
-R = 3.5;
-R_obj = 1.5;
+T = 5;
+R = 1;
+R_obj = 2;
 %% Define projected system
 x1 = SX.sym('x1', 2);
 x2 = SX.sym('x2', 2);
 x3 = SX.sym('x3', 2);
 x = [x1;x2;x3];
-x_target = [-10;0;10;0;30;10];
+x_target = [-10;0;10;0;0;10];
 data.x = x;
-data.lbx = [-inf;-inf;0;-inf;-inf;-inf];
-data.ubx = [0;inf;inf;inf;inf;inf];
-data.x0 = [-10;0;10;0;-5;0];
+data.lbx = [-inf;-inf;2.5;-inf;-inf;-inf];
+data.ubx = [-2.5;inf;inf;inf;inf;inf];
+data.x0 = [-10;10;10;10;0;0];
 u1 = SX.sym('u1', 2);
 u2 = SX.sym('u2', 2);
 data.u = [u1;u2];
-data.lbu = [-100/sqrt(2);-100/sqrt(2);-100/sqrt(2);-100/sqrt(2)];
-data.ubu = [100/sqrt(2);100/sqrt(2);100/sqrt(2);100/sqrt(2)];
+data.lbu = [-10;-10;-10;-10];
+data.ubu = [10;10;10;10];
 data.u0 = [0;0;0;0];
-data.c = [norm_2(x3-x1)-(R+R_obj);norm_2(x3-x2)-(R+R_obj);norm_2(x2-x1)-2*R];
+data.c = [norm_2(x3-x1)-(R+R_obj);norm_2(x3-x2)-(R+R_obj)];
 data.f_x = [u1;u2;0;0];
 
 % costs
 data.f_q = 1e-4*norm_2(data.u)^2;
-data.f_q_T = (x-x_target)'*diag([1e-6,1e-6,1e-6,1e-6,1e3,1e3])*(x-x_target);
+data.f_q_T = (x-x_target)'*diag([10,10,10,10,1e3,1e3])*(x-x_target);
 
 data.T = T;
 data.N_stages = 50;
@@ -36,14 +36,14 @@ data.n_s = 2;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';
-opts.elastic_ell_inf = 1;
+%opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, struct);
 
 prob.generate_constraints();
 
 %% create solver
-default_tol = 1e-7;
+default_tol = 1e-10;
 
 %opts_casadi_nlp.ipopt.print_level = 1;
 opts_casadi_nlp.print_time = 0;
@@ -75,4 +75,9 @@ x_res = prob.w.x(0:data.N_stages,0:data.N_fe,data.n_s).res;
 u_res = prob.w.u(1:data.N_stages).res;
 h_res = prob.w.h(:).res;
 t_res = [0,cumsum(h_res)];
-plot_discs(h_res,x_res,[R,R,R_obj], ["circle","circle","circle"])
+fig = figure;
+rectangle('Position',[-1.5 -25 3 50],'FaceColor',[1 0 0 0.5],'LineStyle', '--', 'EdgeColor' , 'red')
+rectangle('Position',[-2 8 4 4], 'Curvature', 1, 'FaceColor',[0 1 0 0.5], 'LineStyle', '--', 'EdgeColor' , 'green')
+rectangle('Position',[-11 -1 2 2], 'Curvature', 1, 'FaceColor',[0 1 0 0.5], 'LineStyle', '--', 'EdgeColor' , 'green')
+rectangle('Position',[9 -1 2 2], 'Curvature', 1, 'FaceColor',[0 1 0 0.5], 'LineStyle', '--', 'EdgeColor' , 'green')
+plot_discs(h_res,x_res,[R,R,R_obj], ["circle","circle","circle"], 20, fig, 'coop.avi');
