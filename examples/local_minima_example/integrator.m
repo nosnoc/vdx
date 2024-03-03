@@ -13,7 +13,7 @@ function [prob, data, opts, h] = integrator(use_fesd,N_sim, x0)
     data.ubu = [];
     data.u0 = [];
     data.c = [x(1)+x(2)];
-    data.f_x = [1; -1-x(1)];
+    data.f_x = [-4; x(2)];
     data.f_q = 0;%x(1)^2;
     data.f_q_T = 0;
 

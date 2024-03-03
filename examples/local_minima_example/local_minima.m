@@ -3,7 +3,7 @@ close all
 import vdx.*
 N_sim = 1;
 ts = 0;
-xs = 0.69:0.001:0.79;%-1.6:0.1:-1;
+xs = 1.0:0.01:2.0;%-1.6:0.1:-1;
 x_term = [];
 
 f1 = figure;
@@ -43,6 +43,7 @@ for comp_tol=[1e-6]%,1e-3,1e-6,1e-9]
                 prob.w.lambda(0,0,data.n_s).lb = lambda_curr;
                 prob.w.lambda(0,0,data.n_s).ub = lambda_curr;
                 success = homotopy(prob, comp_tol, comp_tol);
+                %success = homotopy(prob);
                 if ~success
                     disp(['Failure to converge at step=' num2str(step)])
                 else
@@ -60,9 +61,9 @@ for comp_tol=[1e-6]%,1e-3,1e-6,1e-9]
             x_term = [x_term,x_curr];
             %f = cost + (x_curr(1)-3.5)^2;
             %disp(x_curr)
-            f = (x_curr(1)-2)^2;
-            disp(x_curr(1))
-            ress(ii) =x_curr(1);
+            f = (x_curr(2)-1.2)^2;
+            disp(x_res)
+            ress(ii) = x_curr(2);
             fs(ii) = f;
             figure(f1)
             refreshdata
