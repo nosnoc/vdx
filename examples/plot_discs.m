@@ -30,8 +30,10 @@ function plot_discs(h,pos,r,type,lim,fig,vidname)
         figure(fig)
     end
     axis equal
+    set(gca,'XTick',[], 'YTick', [])
     xlim([-lim,lim])
     ylim([-lim,lim])
+    axis off
     discs = {};
     tau = linspace(0, 2*pi)';
     rot = @(theta) [cos(theta) -sin(theta);...
@@ -49,9 +51,11 @@ function plot_discs(h,pos,r,type,lim,fig,vidname)
         discs{ii} = patch(v(:,1),v(:,2),'g');
     end
     if exist('vidname')
-        writer = VideoWriter(vidname);
+        mkdir([vidname '_frames'])
+        writer = VideoWriter([vidname '.avi']);
         open(writer);
         frame = getframe(gca);
+        exportgraphics(gca, [vidname '_frames/' num2str(1) '.pdf'])
         writeVideo(writer,frame)
     end
     pause(h(1));
@@ -71,6 +75,8 @@ function plot_discs(h,pos,r,type,lim,fig,vidname)
         pause(0.1)
         if exist('vidname')
             frame = getframe(gca);
+            ff=jj+1;
+            exportgraphics(gca, [vidname '_frames/' num2str(jj) '.pdf'])
             writeVideo(writer,frame);
         end
     end

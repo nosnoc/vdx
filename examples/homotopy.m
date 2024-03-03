@@ -23,6 +23,9 @@ function [success,stats] = homotopy(prob,sigma_0,comp_tol,slope)
         if comp_res < comp_tol && stats.success
             break
         end
+        if sigma_k == 0
+            break
+        end
     end
 
     success = stats.success;

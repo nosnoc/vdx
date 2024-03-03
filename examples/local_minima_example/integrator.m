@@ -1,6 +1,6 @@
 function [prob, data, opts, h] = integrator(use_fesd,N_sim, x0)
     import casadi.*
-    T = 2.0;
+    T = 1.0;
     t_step = T/N_sim;
     %% Define (uncontrolled for now) projected system
     x = SX.sym('x', 2);
@@ -12,9 +12,9 @@ function [prob, data, opts, h] = integrator(use_fesd,N_sim, x0)
     data.lbu = [];
     data.ubu = [];
     data.u0 = [];
-    data.c = [-x(1)+x(2)];
-    data.f_x = [3; 1];
-    data.f_q = x(1)^2;
+    data.c = [x(1)+x(2)];
+    data.f_x = [1; -1-x(1)];
+    data.f_q = 0;%x(1)^2;
     data.f_q_T = 0;
 
     data.T = t_step;
@@ -33,8 +33,8 @@ function [prob, data, opts, h] = integrator(use_fesd,N_sim, x0)
 
     prob.generate_constraints();
     f = prob.f;
-    prob.f = 0;
-    prob.g.objective(1) = {f, -inf, inf};
+    %prob.f = 0;
+    %prob.g.objective(1) = {f, -inf, inf};
 
     default_tol = 1e-10;
 

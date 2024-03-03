@@ -62,6 +62,7 @@ classdef InclusionProblem < vdx.Problem
         function generate_constraints(obj)
             import casadi.*
             [B, C, D, tau_root] = generate_butcher_tableu_integral(obj.data.n_s, obj.data.irk_scheme);
+            %[~, B, C, ~] = generate_butcher_tableu(obj.data.n_s, 'RADAU_IIA')
             n_x = length(obj.data.x);
             n_u = length(obj.data.u);
             n_c = length(obj.data.c);
