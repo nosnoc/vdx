@@ -49,7 +49,7 @@ classdef InclusionProblem < vdx.Problem
                 obj.w.u(ii) = {{['u_' num2str(ii)], n_u}, data.lbu, data.ubu, data.u0};
                 for jj=1:data.N_fe
                     if obj.opts.use_fesd
-                        obj.w.h(ii,jj) = {{['h_' num2str(ii) '_' num2str(jj)], 1}, 1e-3*h0, (2-1e-3)*h0, h0};
+                        obj.w.h(ii,jj) = {{['h_' num2str(ii) '_' num2str(jj)], 1}, 0, 2*h0, h0};
                     end
                     for kk=1:data.n_s
                         obj.w.x(ii,jj,kk) = {{['x_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_x}, data.lbx, data.ubx, data.x0};
