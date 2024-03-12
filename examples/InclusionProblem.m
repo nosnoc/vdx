@@ -326,7 +326,7 @@ classdef InclusionProblem < vdx.Problem
             end
 
             if obj.opts.elastic_ell_inf
-                obj.f = obj.f + obj.w.s_elastic(1)*1/obj.p.sigma(1);
+                obj.f = obj.p.sigma(1)*obj.f + obj.w.s_elastic(1);
             end
 
             obj.comp_res_fun = Function('comp_res', {obj.w.w, obj.p.w}, {max(G.*H)});

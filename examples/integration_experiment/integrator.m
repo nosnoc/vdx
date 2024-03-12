@@ -32,7 +32,7 @@ function [prob,data,opts,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
 
     prob.generate_constraints();
 
-    default_tol = 1e-12;
+    default_tol = 1e-18;
 
     opts_casadi_nlp.ipopt.print_level = 2;
     opts_casadi_nlp.print_time = 0;

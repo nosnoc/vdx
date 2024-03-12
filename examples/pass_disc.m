@@ -77,8 +77,8 @@ u_res = prob.w.u(1:data.N_stages).res;
 h_res = prob.w.h(:).res;
 t_res = [0,cumsum(h_res)];
 fig = figure;
-rectangle('Position',[-1.5 -25 3 50],'FaceColor',[1 0 0 0.5],'LineStyle', '--', 'EdgeColor' , 'red')
-rectangle('Position',[-2 8 4 4], 'Curvature', 1, 'FaceColor',[0 1 0 0.5], 'LineStyle', '--', 'EdgeColor' , 'green')
-rectangle('Position',[-11 -1 2 2], 'Curvature', 1, 'FaceColor',[0 1 0 0.5], 'LineStyle', '--', 'EdgeColor' , 'green')
-rectangle('Position',[9 -1 2 2], 'Curvature', 1, 'FaceColor',[0 1 0 0.5], 'LineStyle', '--', 'EdgeColor' , 'green')
-plot_discs(h_res,x_res,[R,R,R_obj], ["circle","circle","circle"], 12, fig, 'coop');
+rectangle('Position',[-1.5 -25 3 50],'FaceColor',[1 0 0 0.2],'LineStyle', '--', 'EdgeColor' , 'red')
+rectangle('Position',[-2 8 4 4], 'Curvature', 1, 'FaceColor',[0.8500 0.3250 0.0980,0.5], 'LineStyle', '--', 'EdgeColor' , [0.8500 0.3250 0.0980])
+rectangle('Position',[-11 -1 2 2], 'Curvature', 1, 'FaceColor',[0 0.4470 0.7410,0.5], 'LineStyle', '--', 'EdgeColor' , [0 0.4470 0.7410])
+rectangle('Position',[9 -1 2 2], 'Curvature', 1, 'FaceColor',[0 0.4470 0.7410,0.5], 'LineStyle', '--', 'EdgeColor' , [0 0.4470 0.7410])
+plot_pass_discs(h_res,x_res,[R,R,R_obj], ["circle","circle","circle"], fig, 'coop');

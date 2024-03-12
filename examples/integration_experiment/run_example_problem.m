@@ -2,9 +2,9 @@ clear all;
 close all;
 
 T = (11/12)*pi + sqrt(3);
-N_sim = 5;
+N_sim = 200;
 N_fe = 2;
-use_fesd = false; 
+use_fesd = true; 
 n_s = 4;
 [prob, data, opts,h] = integrator(T, N_sim, N_fe, use_fesd, n_s);
 orig_init = prob.w.init;
@@ -29,7 +29,7 @@ for step=1:N_sim
     prob.w.lambda(0,0,data.n_s).init = lambda_curr;
     prob.w.lambda(0,0,data.n_s).lb = lambda_curr;
     prob.w.lambda(0,0,data.n_s).ub = lambda_curr;
-    success = homotopy(prob, 1, 1e-12);
+    success = homotopy(prob, 1, 1e-16,0.01);
     if ~success
         disp(['Failure to converge at step=' num2str(step)])
     else

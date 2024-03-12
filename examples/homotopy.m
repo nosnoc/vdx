@@ -16,6 +16,9 @@ function [success,stats] = homotopy(prob,sigma_0,comp_tol,slope)
         prob.w.init = prob.w.res;
         all_stats = [all_stats, stats];
         comp_res = full(prob.comp_res_fun(prob.w.res,prob.p.init));
+        if stats.return_status == "Search_Direction_Becomes_Too_Small"
+            stats.success = 1;
+        end
         if ~stats.success
             fprintf(['sigma_k=' num2str(sigma_k) ' comp_res=' num2str(comp_res) '\n']);
         end
