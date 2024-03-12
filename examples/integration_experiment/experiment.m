@@ -1,10 +1,10 @@
 %%
-stage_counts = [5, 10, 20, 40, 70, 100, 200];% 5000, 10000];
+stage_counts = [5, 10, 20, 40];%, 70, 100, 200];% 5000, 10000];
 n_s_list = [1,2,3,4];
 N_fe = 2;
-T = (11/12)*pi + sqrt(3);
+T = ((11/12)*pi + sqrt(3));
 
-comp_tol = 1e-9;
+comp_tol = 1e-15;
 
 % do no FESD runs
 no_fesd_all_hs = {};
@@ -28,7 +28,7 @@ for n_s=n_s_list
             prob.w.lambda(0,0,data.n_s).init = lambda_curr;
             prob.w.lambda(0,0,data.n_s).lb = lambda_curr;
             prob.w.lambda(0,0,data.n_s).ub = lambda_curr;
-            [success,stats] = homotopy(prob, 1, comp_tol);
+            [success,stats] = homotopy(prob, 1, comp_tol, 1e-2);
             disp(['step=' num2str(step) ' n_s=' num2str(n_s) ' N_sim=' num2str(N_sim) ' Standard'])
             x_curr = prob.w.x(1,data.N_fe,data.n_s).res;
             lambda_curr = prob.w.lambda(1,data.N_fe,data.n_s).res;
@@ -66,7 +66,7 @@ for n_s=n_s_list
             prob.w.lambda(0,0,data.n_s).init = lambda_curr;
             prob.w.lambda(0,0,data.n_s).lb = lambda_curr;
             prob.w.lambda(0,0,data.n_s).ub = lambda_curr;
-            [success,stats] = homotopy(prob, 1, comp_tol);
+            [success,stats] = homotopy(prob, 1, comp_tol, 1e-2);
             disp(['step=' num2str(step) ' n_s=' num2str(n_s) ' N_sim=' num2str(N_sim) ' FESD'])
             x_curr = prob.w.x(1,data.N_fe,data.n_s).res;
             lambda_curr = prob.w.lambda(1,data.N_fe,data.n_s).res;
@@ -100,7 +100,7 @@ ax = gca;
 ax.XAxis.FontSize = 56;
 ax.YAxis.FontSize = 56;
 grid on
-exportgraphics(gca, '~/syscop/cdc2024_fesd_pds/figures/rk_pds_order_plot.pdf')
+%exportgraphics(gca, '~/syscop/cdc2024_fesd_pds/figures/rk_pds_order_plot.pdf')
 
 figure('Position', [10 10 800 600])
 hold on;
@@ -118,7 +118,7 @@ ax = gca;
 ax.XAxis.FontSize = 56;
 ax.YAxis.FontSize = 56;
 grid on
-exportgraphics(gca, '~/syscop/cdc2024_fesd_pds/figures/fesd_pds_order_plot.pdf')
+%exportgraphics(gca, '~/syscop/cdc2024_fesd_pds/figures/fesd_pds_order_plot.pdf')
 
 
 figure

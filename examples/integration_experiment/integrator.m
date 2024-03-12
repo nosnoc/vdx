@@ -26,13 +26,13 @@ function [prob,data,opts,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
     opts.step_eq = 'heuristic_mean';
     %opts.step_eq = 'direct_homotopy_with_penalty';
     opts.use_fesd = use_fesd;
-    opts.elastic_ell_inf = true;
+    %opts.elastic_ell_inf = true;
 
     prob = InclusionProblem(data, opts);
 
     prob.generate_constraints();
 
-    default_tol = 1e-18;
+    default_tol = 1e-15;
 
     opts_casadi_nlp.ipopt.print_level = 2;
     opts_casadi_nlp.print_time = 0;
@@ -46,7 +46,8 @@ function [prob,data,opts,h] = integrator(T, N_sim, N_fe, use_fesd, n_s)
     opts_casadi_nlp.ipopt.dual_inf_tol = default_tol;
     opts_casadi_nlp.ipopt.dual_inf_tol = default_tol;
     opts_casadi_nlp.ipopt.compl_inf_tol = default_tol;
-    opts_casadi_nlp.ipopt.acceptable_tol = 1e-12;
+    opts_casadi_nlp.ipopt.acceptable_tol = 1e-14;
+    %opts_casadi_nlp.ipopt.tiny_step_tol = 1e-18;
     opts_casadi_nlp.ipopt.mu_strategy = 'adaptive';
     opts_casadi_nlp.ipopt.mu_oracle = 'quality-function';
     opts_casadi_nlp.ipopt.warm_start_init_point = 'yes';
