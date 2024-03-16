@@ -36,6 +36,9 @@ classdef InclusionProblem < vdx.Problem
             if ~isfield(obj.data, 'ubg_path')
                 obj.data.ubg_path = zeros(size(obj.data.g_path));
             end
+            if ~isfield(obj.opts,'time_dependent')
+                obj.opts.time_dependent = false;
+            end
             % get dimensions
             n_u = length(data.u);
             n_c = length(data.c);
@@ -56,6 +59,9 @@ classdef InclusionProblem < vdx.Problem
             obj.w.lambda(0,0,data.n_s) = {{['lambda_0'], n_c},0,0};
             for ii=1:data.N_stages
                 obj.w.u(ii) = {{['u_' num2str(ii)], n_u}, data.lbu, data.ubu, data.u0};
+                if obj.opts.time_dependent
+                    obj.w.sot(ii) = {{['sot_' num2str(ii)], 1}, 0, 100, 1};
+                end
                 for jj=1:data.N_fe
                     if obj.opts.use_fesd
                         obj.w.h(ii,jj) = {{['h_' num2str(ii) '_' num2str(jj)], 1}, 0, 2*h0, h0};
@@ -107,6 +113,11 @@ classdef InclusionProblem < vdx.Problem
             x_prev = obj.w.x(0,0,obj.data.n_s);
             for ii=1:obj.data.N_stages
                 ui = obj.w.u(ii);
+                if obj.opts.time_dependent
+                    s_sot = obj.w.sot(ii);
+                else
+                    s_sot = 1;
+                end
                 sum_h = 0;
                 for jj=1:obj.data.N_fe
                     if obj.opts.use_fesd
@@ -118,8 +129,8 @@ classdef InclusionProblem < vdx.Problem
                     for kk=1:obj.data.n_s
                         x_ijk = obj.w.x(ii,jj,kk);
                         lambda_ijk = obj.w.lambda(ii,jj,kk);
-                        fj = f_x_fun(x_ijk,ui,lambda_ijk);
-                        qj = f_q_fun(x_ijk,ui);
+                        fj = s_sot*f_x_fun(x_ijk,ui,lambda_ijk);
+                        qj = s_sot*f_q_fun(x_ijk,ui);
                         xk = C(1, kk+1) * x_prev;
                         for rr=1:obj.data.n_s
                             x_ijr = obj.w.x(ii,jj,rr);
@@ -138,10 +149,16 @@ classdef InclusionProblem < vdx.Problem
                 if obj.opts.use_fesd
                     obj.g.sum_h(ii) = {t_stage-sum_h};
                 end
+                if obj.opts.time_dependent
+                    x_end = obj.w.x(ii,obj.data.N_fe,obj.data.n_s);
+                    x_start = obj.w.x(0,0,obj.data.n_s);
+                    obj.g.g_equidistant_grid(ii) = {(x_end(end)-x_start(end)) - t_stage*ii};
+                end
             end
 
             % Terminal cost
             obj.f = obj.f + f_q_T_fun(obj.w.x(ii,jj,kk));
+
 
             % Terminal constraint
             if isfield(obj.data, 'g_T')
