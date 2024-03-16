@@ -1,9 +1,9 @@
 %%
-stage_counts = [5, 10, 20, 40];%, 70, 100, 200];% 5000, 10000];
+stage_counts = [5, 10, 20, 40, 70, 100, 200];% 5000, 10000];
 n_s_list = [1,2,3,4];
 N_fe = 2;
 T = ((11/12)*pi + sqrt(3));
-
+%%
 comp_tol = 1e-15;
 
 % do no FESD runs
@@ -87,38 +87,42 @@ save(['order_data_' char(datetime('now', 'format', 'yyyyMMddHHmmSS')) '.mat'],'f
 figure('Position', [10 10 800 600])
 hold on;
 for n_s=n_s_list
-    plot(no_fesd_all_hs{n_s},no_fesd_all_errors{n_s}, '-x', 'Markersize', 20.0, 'Linewidth', 5.0, 'DisplayName', sprintf('$n_s=%d$', n_s));
+    plot(no_fesd_all_hs{n_s},no_fesd_all_errors{n_s}, '-o', 'Markersize', 15.0, 'Linewidth', 5.0, 'DisplayName', sprintf('$n_s=%d$', n_s));
 end
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
-xlabel('$|h_0|$', 'fontsize', 64)
-ylabel('$\mathrm{error}$', 'fontsize', 64)
-legend('location', 'southeast', 'fontsize', 42)
-ylim([0.9e-14,1])
+xlabel('$h$', 'fontsize', 32)
+ylabel('$\mathrm{error}$', 'fontsize', 32)
+legend('location', 'southeast', 'fontsize', 32, 'NumColumns', 2)
+ylim([0.9e-19,1])
 hold off
 ax = gca;
-ax.XAxis.FontSize = 56;
-ax.YAxis.FontSize = 56;
+ax.XAxis.FontSize = 48;
+ax.YAxis.FontSize = 48;
+xticks([1e-2, 1e-1])
+xticklabels({'$10^{-2}$','$10^{-1}$'})
 grid on
-%exportgraphics(gca, '~/syscop/cdc2024_fesd_pds/figures/rk_pds_order_plot.pdf')
+exportgraphics(gca, '~/syscop/publications/cdc2024_fesd_pds/figures/rk_pds_order_plot.pdf')
 
 figure('Position', [10 10 800 600])
 hold on;
 for n_s=n_s_list
-    plot(fesd_all_hs{n_s},fesd_all_errors{n_s}, '-x', 'Markersize', 20.0, 'Linewidth', 5.0, 'DisplayName', sprintf('$n_s=%d$', n_s));
+    plot(fesd_all_hs{n_s},fesd_all_errors{n_s}, '-o', 'Markersize', 15.0, 'Linewidth', 5.0, 'DisplayName', sprintf('$n_s=%d$', n_s));
 end
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
-xlabel('$|h_0|$', 'fontsize', 64)
-ylabel('$\mathrm{error}$', 'fontsize', 64)
-legend('location', 'southeast', 'fontsize', 42)
-ylim([0.9e-14,1])
+xlabel('$h$', 'fontsize', 32)
+ylabel('$\mathrm{error}$', 'fontsize', 32)
+legend('location', 'southeast', 'fontsize', 32, 'NumColumns', 2)
+ylim([0.9e-19,1])
 hold off
 ax = gca;
-ax.XAxis.FontSize = 56;
-ax.YAxis.FontSize = 56;
+ax.XAxis.FontSize = 48;
+ax.YAxis.FontSize = 48;
+xticks([1e-2, 1e-1])
+xticklabels({'$10^{-2}$','$10^{-1}$'})
 grid on
-%exportgraphics(gca, '~/syscop/cdc2024_fesd_pds/figures/fesd_pds_order_plot.pdf')
+exportgraphics(gca, '~/syscop/publications/cdc2024_fesd_pds/figures/fesd_pds_order_plot.pdf')
 
 
 figure

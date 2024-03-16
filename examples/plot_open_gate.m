@@ -1,4 +1,4 @@
-function plot_pass_discs(h,pos,r,type,fig,vidname)
+function plot_open_gate(h,pos,r,type,fig,vidname)
     n = length(r);
     if ~exist('type')
         type = [];
@@ -31,7 +31,7 @@ function plot_pass_discs(h,pos,r,type,fig,vidname)
     ax = gca;
     set(ax,'XTick',[-10,0,10], 'YTick', [0,5,10], 'TickLength', [0.025,0.025], 'LineWidth', 4.0);
     xlim([-12,12])
-    ylim([-6,13])
+    ylim([-6,5])
     ax.XAxis.FontSize = 36;
     ax.YAxis.FontSize = 36;
     xlabel("$c_x$", "fontsize", 32)
@@ -52,13 +52,17 @@ function plot_pass_discs(h,pos,r,type,fig,vidname)
           case "square"
             v = sqr(p,r(ii));
         end
-        if ii>2
+        if ii==3
             color = [0.8500 0.3250 0.0980];
         else
             color = [0 0.4470 0.7410];
         end
         discs{ii} = patch(v(:,1),v(:,2), color);
     end
+    % plot "gate"
+    gate = patch([-20,20,20,-20],[-10,-10,pos(end,1), pos(end,1)], [1 0 0], 'FaceAlpha', 0.1, 'LineStyle', '--', 'EdgeColor' , [1 0 0]);
+    
+    
     if exist('vidname')
         mkdir([vidname '_frames'])
         writer = VideoWriter([vidname '.avi']);
@@ -79,13 +83,17 @@ function plot_pass_discs(h,pos,r,type,fig,vidname)
             end
             discs{ii}.Vertices = v;
         end
+        gate.Vertices = [-20 -10;
+            20 -10;
+            20 pos(end,jj);
+            -20 pos(end,jj)];
         drawnow limitrate;
         %pause(h(jj));
         pause(0.1)
         if exist('vidname')
             frame = getframe(gca);
             ff=jj+1;
-            %exportgraphics(gca, [vidname '_frames/' num2str(jj) '.pdf'])
+            exportgraphics(gca, [vidname '_frames/' num2str(jj) '.pdf'])
             writeVideo(writer,frame);
         end
     end

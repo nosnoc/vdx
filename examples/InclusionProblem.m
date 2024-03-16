@@ -27,6 +27,15 @@ classdef InclusionProblem < vdx.Problem
             if ~isfield(obj.opts,'elastic_ell_inf')
                 obj.opts.elastic_ell_inf = 0;
             end
+            if ~isfield(obj.data, 'g_path')
+                obj.data.g_path = [];
+            end
+            if ~isfield(obj.data, 'lbg_path')
+                obj.data.lbg_path = zeros(size(obj.data.g_path));
+            end
+            if ~isfield(obj.data, 'ubg_path')
+                obj.data.ubg_path = zeros(size(obj.data.g_path));
+            end
             % get dimensions
             n_u = length(data.u);
             n_c = length(data.c);
@@ -88,6 +97,7 @@ classdef InclusionProblem < vdx.Problem
             f_x = obj.data.f_x + nabla_c*lambda;
             f_x = f_x;
 
+            g_path_fun = Function('g_path_fun', {obj.data.x}, {obj.data.g_path});
             f_x_fun = Function('f_x_fun', {obj.data.x,obj.data.u,lambda}, {f_x});
             f_q_fun = Function('q_fun', {obj.data.x,obj.data.u}, {obj.data.f_q});
             f_q_T_fun = Function('q_fun', {obj.data.x}, {obj.data.f_q_T});
@@ -118,6 +128,8 @@ classdef InclusionProblem < vdx.Problem
                         obj.g.dynamics(ii,jj,kk) = {h * fj - xk};
                         % also add non-negativity constraint on c
                         obj.g.c_nonnegative(ii,jj,kk) = {c_fun(x_ijk), 0, inf};
+                        %add path constraints
+                        obj.g.g_path(ii,jj,kk) = {g_path_fun(x_ijk), obj.data.lbg_path, obj.data.ubg_path};
                         % also integrate the objective
                         obj.f = obj.f + B(kk+1)*h*qj;
                     end

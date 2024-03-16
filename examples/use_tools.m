@@ -3,7 +3,7 @@ close all
 import casadi.*
 import vdx.*
 
-T = 6;
+T = 5;
 R = 1;
 R_obj = 2;
 %% Define projected system
@@ -12,11 +12,11 @@ x2 = SX.sym('x2', 2);
 x3 = SX.sym('x3', 2);
 x4 = SX.sym('x3', 2);
 x = [x1;x2;x3;x4];
-x_target = [-10;0;10;0;10;10;0;0];
+x_target = [-10;0;10;0;7;10;0;0];
 data.x = x;
 data.lbx = [-inf;-inf;3.25;-inf;-inf;-inf;-inf;-inf];
 data.ubx = [-3.25;inf;inf;inf;inf;inf;inf;inf];
-data.x0 = [-10;10;5;-3;0;0; -5;0];
+data.x0 = [-10;10;5;-3;0;0; -5;-3];
 u1 = SX.sym('u1', 2);
 u2 = SX.sym('u2', 2);
 data.u = [u1;u2];
@@ -32,17 +32,17 @@ data.f_x = [u1;u2;0;0;0;0];
 
 % costs
 data.f_q = 1e-4*norm_2(data.u)^2;
-data.f_q_T = (x-x_target)'*diag([1e-3,1e-3,1e-3,1e-3,1e3,1e3,0,0])*(x-x_target);
+data.f_q_T = (x-x_target)'*diag([1e1,1e1,1e1,1e1,1e3,1e3,0,0])*(x-x_target);
 
 data.T = T;
-data.N_stages = 50;
+data.N_stages = 30;
 data.N_fe = 3;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 
 opts.step_eq = 'heuristic_mean';
 opts.use_fesd = true;
-opts.elastic_ell_inf = 1;
+%opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, struct);
 
@@ -81,9 +81,9 @@ x_res = prob.w.x(0:data.N_stages,0:data.N_fe,data.n_s).res;
 u_res = prob.w.u(1:data.N_stages).res;
 h_res = prob.w.h(:).res;
 t_res = [0,cumsum(h_res)];
-fig = figure;
+fig = figure('Position', [10 10 1600 800]);
 rectangle('Position',[-2.25 -25 4.5 50],'FaceColor',[1 0 0 0.2],'LineStyle', '--', 'EdgeColor' , 'red')
-rectangle('Position',[-2 8 4 4], 'Curvature', 1, 'FaceColor',[0.8500 0.3250 0.0980,0.5], 'LineStyle', '--', 'EdgeColor' , [0.8500 0.3250 0.0980])
+rectangle('Position',[5 8 4 4], 'Curvature', 1, 'FaceColor',[0.8500 0.3250 0.0980,0.5], 'LineStyle', '--', 'EdgeColor' , [0.8500 0.3250 0.0980])
 rectangle('Position',[-11 -1 2 2], 'Curvature', 1, 'FaceColor',[0 0.4470 0.7410,0.5], 'LineStyle', '--', 'EdgeColor' , [0 0.4470 0.7410])
 rectangle('Position',[9 -1 2 2], 'Curvature', 1, 'FaceColor',[0 0.4470 0.7410,0.5], 'LineStyle', '--', 'EdgeColor' , [0 0.4470 0.7410])
 plot_pass_discs(h_res,x_res,[R,R,R_obj,R_obj], ["circle","circle","circle","circle"], fig, 'coop_tools');
