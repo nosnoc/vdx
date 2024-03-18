@@ -36,7 +36,7 @@ data.N_fe = 2;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 
-opts.step_eq = 'direct_homotopy_with_penalty';
+opts.step_eq = 'linear';
 %opts.step_eq = 'direct_homotopy';
 %opts.elastic_ell_inf = 1;
 

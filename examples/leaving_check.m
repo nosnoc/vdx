@@ -9,8 +9,8 @@ x = SX.sym('x', 2);
 data.x = x;
 data.lbx = [-inf;-inf];
 data.ubx = [inf;inf];
-%data.x0 = [0.23;-1];
-data.x0 = [0.8;-.8];
+data.x0 = [0.23;-1];
+%data.x0 = [0.8;-.8];
 data.u = [];
 data.lbu = [];
 data.ubu = [];
@@ -26,9 +26,9 @@ data.N_fe = 3;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 
-opts.step_eq = 'heuristic_mean';
+opts.step_eq = 'linear';
 opts.use_fesd = true;
-opts.elastic_ell_inf = 1;
+%opts.elastic_ell_inf = 1;
 
 prob = InclusionProblem(data, opts);
 

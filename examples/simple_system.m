@@ -23,13 +23,13 @@ data.f_q_T = 0;
 
 data.T = t_step;
 data.N_stages = 1;
-data.N_fe = 2;
+data.N_fe = 3;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 
-opts.step_eq = 'heuristic_mean';
+opts.step_eq = 'linear_relaxed';
 opts.use_fesd = true;
-opts.elastic_ell_inf = 1;
+opts.elastic_ell_inf = 0;
 
 prob = InclusionProblem(data, opts);
 

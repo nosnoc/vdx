@@ -21,6 +21,12 @@ classdef InclusionProblem < vdx.Problem
             if ~isfield(obj.opts, 'use_fesd')
                 obj.opts.use_fesd = true;
             end
+            if ~isfield(obj.opts, 'step_eq')
+                obj.opts.step_eq = 'heuristic_mean';
+            end
+            if ~obj.opts.use_fesd
+                obj.opts.step_eq = 'none';
+            end
             if ~isfield(obj.opts,'comp_scale')
                 obj.opts.comp_scale = 1;
             end
@@ -35,6 +41,9 @@ classdef InclusionProblem < vdx.Problem
             end
             if ~isfield(obj.data, 'ubg_path')
                 obj.data.ubg_path = zeros(size(obj.data.g_path));
+            end
+            if ~isfield(obj.data, 'partial_proj_matrix')
+                obj.data.partial_proj_matrix = eye(length(obj.data.x));
             end
             if ~isfield(obj.opts,'time_dependent')
                 obj.opts.time_dependent = false;
@@ -65,6 +74,17 @@ classdef InclusionProblem < vdx.Problem
                 for jj=1:data.N_fe
                     if obj.opts.use_fesd
                         obj.w.h(ii,jj) = {{['h_' num2str(ii) '_' num2str(jj)], 1}, 0, 2*h0, h0};
+                    end
+                    if (strcmp(obj.opts.step_eq,'linear')||...
+                        strcmp(obj.opts.step_eq,'linear_tanh')||...
+                        strcmp(obj.opts.step_eq,'linear_relaxed')) && jj > 1
+                        obj.w.B_max(ii,jj) ={{['B_max_' num2str(ii) '_' num2str(jj)], n_c},-inf,inf};
+                        obj.w.pi_lambda(ii,jj) ={{['pi_lambda_' num2str(ii) '_' num2str(jj)], n_c},-inf,inf};
+                        obj.w.pi_c(ii,jj) ={{['pi_c_' num2str(ii) '_' num2str(jj)], n_c},-inf,inf};
+                        obj.w.lambda_lambda(ii,jj) ={{['lambda_lambda_' num2str(ii) '_' num2str(jj)], n_c},0,inf};
+                        obj.w.lambda_c(ii,jj) ={{['lambda_c_' num2str(ii) '_' num2str(jj)], n_c},0,inf};
+                        obj.w.eta(ii,jj) ={{['eta_' num2str(ii) '_' num2str(jj)], n_c},0,inf};
+                        obj.w.nu(ii,jj) ={{['nu_' num2str(ii) '_' num2str(jj)], 1},0,inf};
                     end
                     for kk=1:data.n_s
                         obj.w.x(ii,jj,kk) = {{['x_' num2str(ii) '_' num2str(jj) '_' num2str(kk)], n_x}, data.lbx, data.ubx, data.x0};
@@ -100,7 +120,9 @@ classdef InclusionProblem < vdx.Problem
             
             nabla_c = obj.data.c.jacobian(obj.data.x)';
 
-            f_x = obj.data.f_x + nabla_c*lambda;
+            E = obj.data.partial_proj_matrix;
+            
+            f_x = obj.data.f_x + E*nabla_c*lambda;
             f_x = f_x;
 
             g_path_fun = Function('g_path_fun', {obj.data.x}, {obj.data.g_path});
@@ -208,13 +230,6 @@ classdef InclusionProblem < vdx.Problem
             obj.H_fun = Function('H_fun',{obj.w.w},{H});
 
             
-            % Do Step equilibration (only heuristic for now)
-            if ~isfield(obj.opts, 'step_eq')
-                obj.opts.step_eq = 'heuristic_mean';
-            end
-            if ~obj.opts.use_fesd
-                obj.opts.step_eq = 'none';
-            end
             eta_vec = [];
             for ii=1:obj.data.N_stages
                 for jj=2:obj.data.N_fe
@@ -350,6 +365,179 @@ classdef InclusionProblem < vdx.Problem
                 end
               case 'direct_fix_pathological'
                 %TODO(@anton)
+              case 'linear_tanh'
+                for ii=1:obj.data.N_stages
+                    for jj=2:obj.data.N_fe
+                        sigma_c_b = 0;
+                        sigma_lambda_b = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_b = sigma_c_b + c_fun(obj.w.x(ii,jj-1,kk));
+                            sigma_lambda_b = sigma_lambda_b + obj.w.lambda(ii,jj-1,kk);
+                        end
+                        sigma_c_f = 0;
+                        sigma_lambda_f = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_f = sigma_c_f + c_fun(obj.w.x(ii,jj,kk));
+                            sigma_lambda_f = sigma_lambda_f + obj.w.lambda(ii,jj,kk);
+                        end
+
+                        
+                        % todo ideally we output G and H instead of doing all of the stuff here but ok.
+                        lambda_c = obj.w.lambda_c(ii,jj);
+                        lambda_lambda = obj.w.lambda_lambda(ii,jj);
+                        B_max = obj.w.B_max(ii,jj);
+                        pi_c = obj.w.pi_c(ii,jj);
+                        pi_lambda = obj.w.pi_lambda(ii,jj);
+                        eta = obj.w.eta(ii,jj);
+                        nu = obj.w.nu(ii,jj);
+
+                        obj.g.pi_c_or(ii,jj) = {[pi_c-sigma_c_f;pi_c-sigma_c_b;sigma_c_f+sigma_c_b-pi_c],0,inf};
+                        obj.g.pi_lambda_or(ii,jj) = {[pi_lambda-sigma_lambda_f;pi_lambda-sigma_lambda_b;sigma_lambda_f+sigma_lambda_b-pi_lambda],0,inf};
+
+                        % kkt conditions for min B, B>=sigmaB, B>=sigmaF
+                        kkt_max = [1-lambda_lambda-lambda_c;
+                            B_max-pi_c;
+                            B_max-pi_lambda;
+                            (B_max-pi_c).*lambda_c - sigma;
+                            (B_max-pi_lambda).*lambda_lambda - sigma];
+                        obj.g.kkt_max(ii,jj) = {kkt_max,
+                            [0*ones(n_c,1);0*ones(n_c,1);0*ones(n_c,1);-inf*ones(n_c,1);-inf*ones(n_c,1)],
+                            [0*ones(n_c,1);inf*ones(n_c,1);inf*ones(n_c,1);0*ones(n_c,1);0*ones(n_c,1)]};
+
+                        % eta calculation
+                        eta_const = [eta-pi_lambda;eta-pi_c;eta-pi_lambda-pi_c+B_max];
+                        obj.g.eta_const(ii,jj) = {eta_const,
+                            [-inf*ones(n_c,1);-inf*ones(n_c,1);zeros(n_c,1)],
+                            [zeros(n_c,1);zeros(n_c,1);inf*ones(n_c,1)]};
+
+                        obj.g.nu_or(ii,jj) = {[nu-eta;sum(eta)-nu],0,inf};
+
+                        % the actual step eq conditions
+                        %M = 1e5;
+                        M=100*t_stage;
+                        delta_h = obj.w.h(ii,jj) - obj.w.h(ii,jj-1);
+                        step_equilibration = [delta_h + tanh(1000*nu)*M;
+                            delta_h - tanh(1000*nu)*M];
+                        obj.g.step_equilibration(ii,jj) = {step_equilibration,[0;-inf],[inf;0]};
+                        
+                    end
+                end
+              case 'linear'
+                for ii=1:obj.data.N_stages
+                    for jj=2:obj.data.N_fe
+                        sigma_c_b = 0;
+                        sigma_lambda_b = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_b = sigma_c_b + c_fun(obj.w.x(ii,jj-1,kk));
+                            sigma_lambda_b = sigma_lambda_b + obj.w.lambda(ii,jj-1,kk);
+                        end
+                        sigma_c_f = 0;
+                        sigma_lambda_f = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_f = sigma_c_f + c_fun(obj.w.x(ii,jj,kk));
+                            sigma_lambda_f = sigma_lambda_f + obj.w.lambda(ii,jj,kk);
+                        end
+
+                        
+                        % todo ideally we output G and H instead of doing all of the stuff here but ok.
+                        lambda_c = obj.w.lambda_c(ii,jj);
+                        lambda_lambda = obj.w.lambda_lambda(ii,jj);
+                        B_max = obj.w.B_max(ii,jj);
+                        pi_c = obj.w.pi_c(ii,jj);
+                        pi_lambda = obj.w.pi_lambda(ii,jj);
+                        eta = obj.w.eta(ii,jj);
+                        nu = obj.w.nu(ii,jj);
+
+                        obj.g.pi_c_or(ii,jj) = {[pi_c-sigma_c_f;pi_c-sigma_c_b;sigma_c_f+sigma_c_b-pi_c],0,inf};
+                        obj.g.pi_lambda_or(ii,jj) = {[pi_lambda-sigma_lambda_f;pi_lambda-sigma_lambda_b;sigma_lambda_f+sigma_lambda_b-pi_lambda],0,inf};
+
+                        % kkt conditions for min B, B>=sigmaB, B>=sigmaF
+                        kkt_max = [1-lambda_lambda-lambda_c;
+                            B_max-pi_c;
+                            B_max-pi_lambda;
+                            (B_max-pi_c).*lambda_c - sigma;
+                            (B_max-pi_lambda).*lambda_lambda - sigma];
+                        obj.g.kkt_max(ii,jj) = {kkt_max,
+                            [0*ones(n_c,1);0*ones(n_c,1);0*ones(n_c,1);-inf*ones(n_c,1);-inf*ones(n_c,1)],
+                            [0*ones(n_c,1);inf*ones(n_c,1);inf*ones(n_c,1);0*ones(n_c,1);0*ones(n_c,1)]};
+
+                        % eta calculation
+                        eta_const = [eta-pi_lambda;eta-pi_c;eta-pi_lambda-pi_c+B_max];
+                        obj.g.eta_const(ii,jj) = {eta_const,
+                            [-inf*ones(n_c,1);-inf*ones(n_c,1);zeros(n_c,1)],
+                            [zeros(n_c,1);zeros(n_c,1);inf*ones(n_c,1)]};
+
+                        obj.g.nu_or(ii,jj) = {[nu-eta;sum(eta)-nu],0,inf};
+
+                        % the actual step eq conditions
+                        %M = 1e5;
+                        M=t_stage;
+                        delta_h = obj.w.h(ii,jj) - obj.w.h(ii,jj-1);
+                        step_equilibration = [delta_h + (1/h0)*nu*M;
+                            delta_h - (1/h0)*nu*M];
+                        obj.g.step_equilibration(ii,jj) = {step_equilibration,[0;-inf],[inf;0]};
+                        
+                    end
+                end
+              case 'linear_relaxed'
+                for ii=1:obj.data.N_stages
+                    for jj=2:obj.data.N_fe
+                        sigma_c_b = 0;
+                        sigma_lambda_b = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_b = sigma_c_b + c_fun(obj.w.x(ii,jj-1,kk));
+                            sigma_lambda_b = sigma_lambda_b + obj.w.lambda(ii,jj-1,kk);
+                        end
+                        sigma_c_f = 0;
+                        sigma_lambda_f = 0;
+                        for kk=1:obj.data.n_s
+                            sigma_c_f = sigma_c_f + c_fun(obj.w.x(ii,jj,kk));
+                            sigma_lambda_f = sigma_lambda_f + obj.w.lambda(ii,jj,kk);
+                        end
+
+                        
+                        % todo ideally we output G and H instead of doing all of the stuff here but ok.
+                        lambda_c = obj.w.lambda_c(ii,jj);
+                        lambda_lambda = obj.w.lambda_lambda(ii,jj);
+                        B_max = obj.w.B_max(ii,jj);
+                        pi_c = obj.w.pi_c(ii,jj);
+                        pi_lambda = obj.w.pi_lambda(ii,jj);
+                        eta = obj.w.eta(ii,jj);
+                        nu = obj.w.nu(ii,jj);
+
+                        obj.g.pi_c_or(ii,jj) = {[pi_c-sigma_c_f;pi_c-sigma_c_b;sigma_c_f+sigma_c_b-pi_c],0,inf};
+                        obj.g.pi_lambda_or(ii,jj) = {[pi_lambda-sigma_lambda_f;pi_lambda-sigma_lambda_b;sigma_lambda_f+sigma_lambda_b-pi_lambda],0,inf};
+
+                        % kkt conditions for min B, B>=sigmaB, B>=sigmaF
+                        kkt_max = [1-lambda_lambda-lambda_c;
+                            B_max-pi_c;
+                            B_max-pi_lambda;
+                            (B_max-pi_c).*lambda_c - sigma;
+                            (B_max-pi_lambda).*lambda_lambda - sigma];
+                        obj.g.kkt_max(ii,jj) = {kkt_max,
+                            [0*ones(n_c,1);0*ones(n_c,1);0*ones(n_c,1);-inf*ones(n_c,1);-inf*ones(n_c,1)],
+                            [0*ones(n_c,1);inf*ones(n_c,1);inf*ones(n_c,1);0*ones(n_c,1);0*ones(n_c,1)]};
+
+                        % eta calculation
+                        eta_const = [eta-pi_lambda;eta-pi_c;eta-pi_lambda-pi_c+B_max];
+                        obj.g.eta_const(ii,jj) = {eta_const,
+                            [-inf*ones(n_c,1);-inf*ones(n_c,1);zeros(n_c,1)],
+                            [zeros(n_c,1);zeros(n_c,1);inf*ones(n_c,1)]};
+
+                        obj.g.nu_or(ii,jj) = {[nu-eta;sum(eta)-nu],0,inf};
+
+                        % the actual step eq conditions
+                        %M = 1e5;
+                        obj.w.step_eq_slack(ii,jj) = {{['s_step_eq_' num2str(ii) '_' num2str(jj)],1},0,inf};
+                        slack = obj.w.step_eq_slack(ii,jj);
+                        M=100*t_stage;
+                        delta_h = obj.w.h(ii,jj) - obj.w.h(ii,jj-1);
+                        step_equilibration = [delta_h + nu*M+slack;
+                            delta_h - nu*M-slack];
+                        obj.g.step_equilibration(ii,jj) = {step_equilibration,[0;-inf],[inf;0]};
+                        obj.f = obj.f + (1/obj.p.sigma(1))*slack;
+                    end
+                end
               case 'none'
                 % Do nothing
             end

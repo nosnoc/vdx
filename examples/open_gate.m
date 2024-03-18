@@ -48,7 +48,7 @@ data.N_fe = 3;
 data.n_s = 2;
 data.irk_scheme = 'radau';
 
-opts.step_eq = 'heuristic_mean';
+opts.step_eq = 'direct';
 opts.use_fesd = true;
 %opts.elastic_ell_inf = 1;
 

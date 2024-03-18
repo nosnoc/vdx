@@ -30,8 +30,8 @@ function plot_moving_set(h,pos,r,type,fig,vidname)
     box on;
     ax = gca;
     set(ax,'XTick',[-10,0,10], 'YTick', [0,5,10], 'TickLength', [0.025,0.025], 'LineWidth', 4.0);
-    xlim([-12,12])
-    ylim([-6,13])
+    xlim([-3,3])
+    ylim([-3,3])
     ax.XAxis.FontSize = 36;
     ax.YAxis.FontSize = 36;
     xlabel("$c_x$", "fontsize", 32)
@@ -59,6 +59,9 @@ function plot_moving_set(h,pos,r,type,fig,vidname)
         end
         discs{ii} = patch(v(:,1),v(:,2), color);
     end
+    t = pos(end,1);
+    v_C = circ([sin(t);cos(t)],1);
+    C = patch(v_C(:,1),v_C(:,2), [1 0 0], 'FaceAlpha', 0.0, 'LineStyle', '--', 'EdgeColor' , [1 0 0]);
     if exist('vidname')
         mkdir([vidname '_frames'])
         writer = VideoWriter([vidname '.avi']);
@@ -79,13 +82,16 @@ function plot_moving_set(h,pos,r,type,fig,vidname)
             end
             discs{ii}.Vertices = v;
         end
+        t = pos(end,jj);
+        v_C = circ([sin(t);cos(t)],1);
+        C.Vertices = v_C;
         drawnow limitrate;
         %pause(h(jj));
         pause(0.1)
         if exist('vidname')
             frame = getframe(gca);
             ff=jj+1;
-            exportgraphics(gca, [vidname '_frames/' num2str(jj) '.pdf'])
+            %exportgraphics(gca, [vidname '_frames/' num2str(jj) '.pdf'])
             writeVideo(writer,frame);
         end
     end

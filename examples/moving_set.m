@@ -21,6 +21,7 @@ data.c = [-norm(x - [sin(t);cos(t)])^2+(1-0.5)^2];
 data.f_x = [0; 0; 1];
 data.f_q = 0;
 data.f_q_T = 0;
+data.partial_proj_matrix = diag([1 1 0]);
 
 data.T = t_step;
 data.N_stages = 1;
@@ -96,8 +97,12 @@ for step=1:N_sim
     prob.w.init = prob.w.res;
 end
 
-c_res_long = c_fun(x_res_long);
+c_res_long = full(c_fun(x_res_long));
+c_res = full(c_fun(x_res));
 t_res = [0,cumsum(h_res)];
+
+fig = figure('Position', [10 10 1600 800]);
+plot_moving_set(h_res,x_res,[0.5], ["circle"], fig, 'moving_set');
 
 figure
 hold on
@@ -113,6 +118,4 @@ hold on
 x1 = -1.7:0.001:0.7;
 x2 = -(x1+0.5).^2 + 1;
 plot(x_res(1,:), x_res(2,:))
-plot(x1,x2,'r--')
-yline(-0.25, 'r--')
 hold off
