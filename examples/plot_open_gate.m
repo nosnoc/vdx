@@ -93,7 +93,7 @@ function plot_open_gate(h,pos,r,type,fig,vidname)
         if exist('vidname')
             frame = getframe(gca);
             ff=jj+1;
-            exportgraphics(gca, [vidname '_frames/' num2str(jj) '.pdf'])
+            %exportgraphics(gca, [vidname '_frames/' num2str(jj) '.pdf'])
             writeVideo(writer,frame);
         end
     end

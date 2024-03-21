@@ -93,12 +93,14 @@ set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 xlabel('$h$', 'fontsize', 32)
 ylabel('$\mathrm{error}$', 'fontsize', 32)
-legend('location', 'southeast', 'fontsize', 32, 'NumColumns', 2)
-ylim([0.9e-19,1])
+legend('location', 'northeast', 'fontsize', 32, 'NumColumns', 2)
+ylim([0.9e-15,1e7])
 hold off
 ax = gca;
-ax.XAxis.FontSize = 48;
-ax.YAxis.FontSize = 48;
+ax.XAxis.FontSize = 42;
+ax.YAxis.FontSize = 42;
+yticks([1e-15, 1e-10, 1e-5, 1e0])
+yticklabels({'$10^{-15}$','$10^{-10}$','$10^{-5}$','$10^{0}$'})
 xticks([1e-2, 1e-1])
 xticklabels({'$10^{-2}$','$10^{-1}$'})
 grid on
@@ -113,12 +115,14 @@ set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 xlabel('$h$', 'fontsize', 32)
 ylabel('$\mathrm{error}$', 'fontsize', 32)
-legend('location', 'southeast', 'fontsize', 32, 'NumColumns', 2)
-ylim([0.9e-19,1])
+legend('location', 'northeast', 'fontsize', 32, 'NumColumns', 2)
+ylim([0.9e-15,1e7])
 hold off
 ax = gca;
-ax.XAxis.FontSize = 48;
-ax.YAxis.FontSize = 48;
+ax.XAxis.FontSize = 42;
+ax.YAxis.FontSize = 42;
+yticks([1e-15, 1e-10, 1e-5, 1e0])
+yticklabels({'$10^{-15}$','$10^{-10}$','$10^{-5}$','$10^{0}$'})
 xticks([1e-2, 1e-1])
 xticklabels({'$10^{-2}$','$10^{-1}$'})
 grid on

@@ -91,8 +91,7 @@ h_res = prob.w.h(:).res;
 t_res = [0,cumsum(h_res)];
 fig = figure('Position', [10 10 1600 800]);
 rectangle('Position',[-5, 0 10 10], 'Curvature', 1, 'FaceColor',[1 0 0 0.1], 'LineStyle', '--', 'EdgeColor' , [1 0 0])
-%rectangle('Position',[-2.25 -25 4.5 50],'FaceColor',[1 0 0 0.2],'LineStyle', '--', 'EdgeColor' , 'red')
-%rectangle('Position',[5 8 4 4], 'Curvature', 1, 'FaceColor',[0.8500 0.3250 0.0980,0.5], 'LineStyle', '--', 'EdgeColor' , [0.8500 0.3250 0.0980])
-%rectangle('Position',[-11 -1 2 2], 'Curvature', 1, 'FaceColor',[0 0.4470 0.7410,0.5], 'LineStyle', '--', 'EdgeColor' , [0 0.4470 0.7410])
-%rectangle('Position',[9 -1 2 2], 'Curvature', 1, 'FaceColor',[0 0.4470 0.7410,0.5], 'LineStyle', '--', 'EdgeColor' , [0 0.4470 0.7410])
+rectangle('Position',[-8 2 2 2], 'Curvature', 1, 'FaceColor',[0.8500 0.3250 0.0980,0.5], 'LineStyle', '--', 'EdgeColor' , [0.8500 0.3250 0.0980])
+rectangle('Position',[-11 -1 2 2], 'Curvature', 1, 'FaceColor',[0 0.4470 0.7410,0.5], 'LineStyle', '--', 'EdgeColor' , [0 0.4470 0.7410])
+rectangle('Position',[-11 2 2 2], 'Curvature', 1, 'FaceColor',[0 0.4470 0.7410,0.5], 'LineStyle', '--', 'EdgeColor' , [0 0.4470 0.7410])
 plot_open_gate(h_res,x_res,[R,R,R_obj], ["circle","circle","circle"], fig, 'open_gate');
