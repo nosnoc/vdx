@@ -1,20 +1,7 @@
-classdef Problem < handle &...
-        matlab.mixin.Copyable
+classdef Mpcc < vdx.Problem
     properties (Access=public)
-        % Primal variabiles
-        w
-        % Constraints
-        g
-        % Parameters
-        p
-        % Objective
-        f
-        % objective value
-        f_result
-    end
-    properties (Access=public, NonCopyable)
-        % Solver attached to problem
-        solver
+        G
+        H
     end
 
     methods (Access=public)
@@ -29,13 +16,14 @@ classdef Problem < handle &...
         function create_solver(obj, casadi_options)
             w = obj.w(:);
             g = obj.g(:);
+            G = obj.G(:);
+            H = obj.H(:);
             p = obj.p(:);
             f = obj.f;
 
-            casadi_nlp = struct('x', w, 'g', g, 'p', p, 'f', f);
-            % TODO(@anton) more options than just ipopt.
-            % TODO(@anton) options struct should probably be separated into top level and casad opts.
-            obj.solver = casadi.nlpsol('proj_fesd', 'ipopt', casadi_nlp, casadi_options);
+            mpcc_struct = struct('x', w, 'g', g, 'p', p, 'G', G, 'H', H, 'f', f);
+            
+            % TODO a standard interface for MPCC solver
         end
 
         function stats = solve(obj)
@@ -59,7 +47,7 @@ classdef Problem < handle &...
             stats = obj.solver.stats;
         end
     end
-    
+
     methods (Access=protected)
         function cp = copyElement(obj)
             cp = copyElement@matlab.mixin.Copyable(obj);
@@ -68,6 +56,10 @@ classdef Problem < handle &...
             cp.w.problem = cp;
             cp.g = copy(obj.g);
             cp.g.problem = cp;
+            cp.G = copy(obj.G);
+            cp.G.problem = cp;
+            cp.H = copy(obj.H);
+            cp.H.problem = cp;
             cp.p = copy(obj.p);
             cp.p.problem = cp;
             cp.f = obj.f;
