@@ -1,6 +1,6 @@
-# VDX: Automatic Index Tracking for casADi NLPs
-VDX is a wrapper for the creation of generic casADi NLPs which provides automatic, transparent, index tracking facilities for named variable classes.
-It also provides a direct interface to casADi nlpsol and allows for automatic results extraction for the mentioned variable classes.
+# VDX: Automatic Index Tracking for CasADi NLPs
+VDX is a Matlab wrapper for the creation of generic CasADi NLPs which provides automatic, transparent, index tracking facilities for named variable classes.
+It also provides a direct interface to CasADi nlpsol and allows for automatic results extraction for the mentioned variable classes.
 ## Quickstart Guide for Users
 This section provides a quick overview for general users of how to use this tool.
 First we create a problem via:
@@ -37,7 +37,7 @@ The syntax for adding a variable is as follows:
 <variable>.<class>(<index>) = {<symbolic>[,<lower bound>, <upper bound>, <initial value>]}
 <variable>.<class>(<index>) = {{<var_name>, <var_length>}[,<lower bound>, <upper bound>, <initial value>]}
 ```
-the first of which takes a casADi symbolic vector as its first member and the second generates the casADi symbolic from a name and a vector size.
+the first of which takes a CasADi symbolic vector as its first member and the second generates the CasADi symbolic from a name and a vector size.
 You can modify the bounds and initial values of a variable by assigning to the `lb`, `ub`, and `init` fields of a variable class:
 ```Matlab
 prob.w.x(1).lb = 5;
@@ -48,7 +48,7 @@ prob.w.x(1).init = 7;
 The syntax for adding a constraint is identical to the syntax for adding vectors, however the second syntax is not useful because it creates a new variable.
 
 ### Solving VDX Problems and Extracting Results
-Currently you can generate a casADi `nlpsol` by calling `Problem.create_solver(casadi_options)` where the argument is a struct containing the casADi nlpsol options.
+Currently you can generate a CasADi `nlpsol` by calling `Problem.create_solver(casadi_options)` where the argument is a struct containing the CasADi nlpsol options.
 Here is an example:
 ```Matlab
 prob = vdx.Problem();
