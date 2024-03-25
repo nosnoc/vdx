@@ -18,10 +18,14 @@ classdef Problem < handle &...
     end
 
     methods (Access=public)
-        function obj = Problem()
-            obj.w = vdx.Vector(obj, -inf, inf, 0);
-            obj.p = vdx.Vector(obj, -inf, inf, 0);
-            obj.g = vdx.Vector(obj, 0, 0, 0);
+        function obj = Problem(varargin)
+            p = inputParser;
+            addParameter(p, 'casadi_type', 'SX');
+            parse(p, varargin{:});
+            
+            obj.w = vdx.Vector(obj, -inf, inf, 0, 'casadi_type', p.Results.casadi_type);
+            obj.p = vdx.Vector(obj, -inf, inf, 0, 'casadi_type', p.Results.casadi_type);
+            obj.g = vdx.Vector(obj, 0, 0, 0, 'casadi_type', p.Results.casadi_type);
             obj.f = 0;
             obj.f_result = 0;
         end

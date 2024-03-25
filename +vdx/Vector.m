@@ -21,6 +21,8 @@ classdef Vector < handle &...
         % pointer to parent problem
         % TODO(@anton) think about this and possibly provide functionality to move between problems. (low priority)
         problem
+        % casadi type
+        %casadi_type
         % Internal struct of index tracking variables
         variables struct
     end
@@ -32,6 +34,7 @@ classdef Vector < handle &...
             addOptional(p, 'lb', -inf);
             addOptional(p, 'ub', inf);
             addOptional(p, 'init', 0);
+            addParameter(p, 'casadi_type', 'SX');
             parse(p, problem, varargin{:});
             
             obj.problem = problem;
@@ -42,9 +45,12 @@ classdef Vector < handle &...
             obj.default_ub = p.Results.ub;
             obj.default_init = p.Results.init;
 
+            % casADi type
+            %obj.casadi_type = p.Results.casadi_type;
+
             % TODO(@anton) How we handle MX and SX should possibly be decided here in a smarter way,
             %              maybe as a flag to the constructor
-            obj.w = casadi.SX();
+            obj.w = casadi.(p.Results.casadi_type);
             obj.lb = [];
             obj.ub = [];
             obj.init = [];
