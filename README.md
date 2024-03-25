@@ -79,3 +79,4 @@ There are some details that are important to note:
 * Assigning to `init`, `lb`, and `ub`, can only be done for scalar indexes. Updating VDX to allow for assigning to non-scalar indices is a soon to be implemented.
 * We assume that the length of each index of a variable class is uniformly a single value or empty.
 * When accessing a variable class numeric value (`lb`, `ub`, `init`, `res`, `mult`), the values are horizontally concatenated and in column major order, i.e. in "lexicographical" order.
+* This project is similar in its goals to the existing (but as far as I know deprecated) `structures` concept in the `casadi.tools` python package. As of now we do not plan to guarantee any sort of common interface however.

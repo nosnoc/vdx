@@ -11,7 +11,7 @@ classdef Mpcc < vdx.Problem
             obj.H = vdx.Vector(obj, 0, inf, 0);
         end
 
-        function create_solver(obj, casadi_options)
+        function create_solver(obj, options)
             w = obj.w(:);
             g = obj.g(:);
             G = obj.G(:);
@@ -21,7 +21,8 @@ classdef Mpcc < vdx.Problem
 
             mpcc_struct = struct('x', w, 'g', g, 'p', p, 'G', G, 'H', H, 'f', f);
             
-            % TODO a standard interface for MPCC solver
+            % TODO(@anton) figure out if we want to create a standard repository for mpcc solvers or if they should live in nosnoc
+            obj.solver = nosnoc.solver.mpccsol('name', 'type', mpcc_struct, options); 
         end
 
         function stats = solve(obj)
