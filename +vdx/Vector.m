@@ -217,6 +217,27 @@ classdef Vector < handle &...
             end
             fprintf(output);
         end
+
+        function renormalize(obj)
+            vars = fieldnames(obj.variables);
+            % get depth
+            depth = 1;
+            lengths = 1;
+            for ii=1:numel(vars)
+                s = size(obj.variables.(vars(ii)));
+                dims = ndims(obj.variables.(vars(ii)));
+                ls = length(s);
+                ll = length(lengths);
+                if ls > ll
+                    lengths = max([lengths, zeros(1,ls-ll)], s);
+                elseif ls < ll
+                    lengths = max(lengths, [s, zeros(1,ll-ls)]));
+                else
+                    lengths = max(lengths, s);
+                end
+                depth = max(dims, depth);
+            end
+        end
     end
     
     methods (Access=protected)
