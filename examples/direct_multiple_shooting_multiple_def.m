@@ -61,9 +61,9 @@ for k=1:N
     prob.g.dynamics(k) = {Xk_end-Xk};
 end
 
-% Renormalize for that sweet sweet block diagonal structure
-prob.w.renormalize();
-prob.g.renormalize();
+% re-sort for that sweet sweet block diagonal structure
+prob.w.sort_by_index();
+prob.g.sort_by_index();
 
 % Create an NLP solver
 casadi_opts = struct;

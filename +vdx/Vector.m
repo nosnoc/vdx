@@ -218,10 +218,10 @@ classdef Vector < handle &...
             fprintf(output);
         end
 
-        function renormalize(obj)
-        % RENORMALIZE renormalizes this vector so that the vectors occur in column major order with lower dimensional variables
-        %             always occuring befor higher dimensional variables. This can be useful to recover any structure in the 
-        %             problem that comes from the structure of constaraints and variables.
+        function sort_by_index(obj)
+        % SORT_BY_INDEX Sorts this vector so that the vectors occur in column major order with lower dimensional variables
+        %               always occuring before higher dimensional variables. This can be useful to recover any structure in the 
+        %               problem that comes from the structure of constaraints and variables.
             vars = fieldnames(obj.variables);
             % get depth
             lengths = 1;
