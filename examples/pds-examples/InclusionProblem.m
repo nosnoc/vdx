@@ -54,11 +54,11 @@ classdef InclusionProblem < vdx.Problem
             n_x = length(data.x);
 
             if obj.opts.elastic_ell_inf
-                obj.w.s_elastic(1) = {{'s_elastic',1},0,inf,0};
+                obj.w.s_elastic(0) = {{'s_elastic',1},0,inf,0};
             end
-            obj.p.sigma(1) = {{'sigma',1},0,inf,0};
-            obj.p.gamma_h(1) = {{'gamma_h',1},0,inf,1e-1};
-            obj.p.T(1) = {{'T',1},0,inf,data.T};
+            obj.p.sigma(0) = {{'sigma',1},0,inf,0};
+            obj.p.gamma_h(0) = {{'gamma_h',1},0,inf,1e-1};
+            obj.p.T(0) = {{'T',1},0,inf,data.T};
 
             % other derived values
             t_stage = data.T/data.N_stages;
@@ -104,16 +104,16 @@ classdef InclusionProblem < vdx.Problem
 
             % other derived values
             if obj.opts.use_fesd
-                t_stage = obj.p.T(1)/obj.data.N_stages;
-                h0 = obj.p.T(1).init/(obj.data.N_stages*obj.data.N_fe);
+                t_stage = obj.p.T(0)/obj.data.N_stages;
+                h0 = obj.p.T(0).init/(obj.data.N_stages*obj.data.N_fe);
             else
-                h0 = obj.p.T(1).init/(obj.data.N_stages*obj.data.N_fe);
+                h0 = obj.p.T(0).init/(obj.data.N_stages*obj.data.N_fe);
             end
             
             if obj.opts.elastic_ell_inf
-                sigma = obj.w.s_elastic(1);
+                sigma = obj.w.s_elastic(0);
             else
-                sigma = obj.p.sigma(1);
+                sigma = obj.p.sigma(0);
             end
             % Define functions from obj.data
             lambda = SX.sym('lambda', n_c);
@@ -261,7 +261,7 @@ classdef InclusionProblem < vdx.Problem
               case 'heuristic_mean'
                 for ii=1:obj.data.N_stages
                     for jj=1:obj.data.N_fe
-                        obj.f = obj.f + obj.p.gamma_h(1)*(h0-obj.w.h(ii,jj))^2;
+                        obj.f = obj.f + obj.p.gamma_h(0)*(h0-obj.w.h(ii,jj))^2;
                     end
                 end
               case 'direct'
@@ -360,7 +360,7 @@ classdef InclusionProblem < vdx.Problem
                 obj.eta_fun = Function('eta_fun', {obj.w.w}, {eta_vec});
                 for ii=1:obj.data.N_stages
                     for jj=1:obj.data.N_fe
-                        obj.f = obj.f + obj.p.gamma_h(1)*(h0-obj.w.h(ii,jj))^2;
+                        obj.f = obj.f + obj.p.gamma_h(0)*(h0-obj.w.h(ii,jj))^2;
                     end
                 end
               case 'direct_fix_pathological'
@@ -535,7 +535,7 @@ classdef InclusionProblem < vdx.Problem
                         step_equilibration = [delta_h + nu*M+slack;
                             delta_h - nu*M-slack];
                         obj.g.step_equilibration(ii,jj) = {step_equilibration,[0;-inf],[inf;0]};
-                        obj.f = obj.f + (1/obj.p.sigma(1))*slack;
+                        obj.f = obj.f + (1/obj.p.sigma(0))*slack;
                     end
                 end
               case 'none'
@@ -543,7 +543,7 @@ classdef InclusionProblem < vdx.Problem
             end
 
             if obj.opts.elastic_ell_inf
-                obj.f = obj.p.sigma(1)*obj.f + obj.w.s_elastic(1);
+                obj.f = obj.p.sigma(0)*obj.f + obj.w.s_elastic(0);
             end
 
             obj.comp_res_fun = Function('comp_res', {obj.w.w, obj.p.w}, {max(G.*H)});

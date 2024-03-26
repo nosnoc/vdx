@@ -208,9 +208,34 @@ classdef Variable < handle &...
             if isscalar(index_op)
                 % get the cell array of args (x,x0,lbx,ubx)
                 arg = varargin{1};
-                indices = obj.vector.add_variable(arg{:});
-                adj_ind = index_adjustment(index_op.Indices);
-                obj.indices{adj_ind{:},1} = indices;
+
+                % allow for multi index variable creation
+                if is_index_scalar(index_op(1).Indices) % A single scalar variable
+                    indices = obj.vector.add_variable(arg{:});
+                    adj_ind = index_adjustment(index_op.Indices);
+                    obj.indices{adj_ind{:},1} = indices;
+                elseif is_index_logical_array(index_op(1).Indices) % A boolean array representing where variables should be created
+                    error('indexing via logical array not yet supported')
+                else % Assume we want to assign multiple values
+                    inorderlst = table2array(combinations(index_op.Indices{:}));
+                    % Check first argument and adjust naming
+                    x = arg{1};
+                    if iscell(x)
+                        name = x{1}; n = x{2};
+                    else % assume it is an SX or MX
+                        name = x.name; n = size(1, x);
+                    end
+
+                    % create vars and assign.
+                    for ii=1:size(inorderlst)
+                        curr = inorderlst(ii,:);
+                        adj_ind = index_adjustment(num2cell(curr));
+                        arg{1} = {[name index_string(curr)], n};
+                        % add variable
+                        indices = obj.vector.add_variable(arg{:});
+                        obj.indices{adj_ind{:},1} = indices;
+                    end
+                end
             else
                 if index_op(2).Type == 'Dot'
                     if all(cellfun(@(x) isscalar(x) & ~ischar(x), index_op(1).Indices))
@@ -278,5 +303,24 @@ classdef Variable < handle &...
         function obj = empty()
             obj = NosnocVariable([],[]);
         end
+    end
+end
+
+function res = is_index_scalar(index)
+    res = all(cellfun(@(x) isscalar(x) & ~ischar(x), index));
+end
+
+function res = is_index_logical_array(index)
+    if length(index) == 1 && islogical(index{1})
+        res = true;
+    else
+        res = false;
+    end
+end
+
+function istring = index_string(indices)
+    istring = '';
+    for i=indices
+        istring = [istring '_' num2str(i)];
     end
 end
