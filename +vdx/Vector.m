@@ -219,24 +219,112 @@ classdef Vector < handle &...
         end
 
         function renormalize(obj)
+        % RENORMALIZE renormalizes this vector so that the vectors occur in column major order with lower dimensional variables
+        %             always occuring befor higher dimensional variables. This can be useful to recover any structure in the 
+        %             problem that comes from the structure of constaraints and variables.
             vars = fieldnames(obj.variables);
             % get depth
-            depth = 1;
             lengths = 1;
             for ii=1:numel(vars)
-                s = size(obj.variables.(vars(ii)));
-                dims = ndims(obj.variables.(vars(ii)));
+                s = size(obj.variables.(vars{ii}));
+                dims = ndims(obj.variables.(vars{ii}));
                 ls = length(s);
                 ll = length(lengths);
                 if ls > ll
                     lengths = max([lengths, zeros(1,ls-ll)], s);
                 elseif ls < ll
-                    lengths = max(lengths, [s, zeros(1,ll-ls)]));
+                    lengths = max(lengths, [s, zeros(1,ll-ls)]);
                 else
                     lengths = max(lengths, s);
                 end
-                depth = max(dims, depth);
             end
+
+            vars_by_depth = cell(length(lengths)+1, 1);
+            for ii=1:length(vars_by_depth)
+                vars_by_depth{ii} = {};
+            end
+            for ii=1:numel(vars)
+                sz = size(obj.variables.(vars{ii}));
+                dims = sum(sz > 1)+1;
+                vars_by_depth{dims} = vertcat(vars_by_depth{dims}, vars(ii));
+            end
+            
+            indices = {};
+            for len=lengths
+                indices = horzcat(indices, {1:len});
+            end
+            % build modlist
+            modlist = cumprod([1,flip(lengths)]);
+            modlist = flip(modlist(1:end-1));
+            
+            % We subtract 1 to get the 0 indexing correct :)
+            inorderlst = table2array(combinations(indices{:}))-1;
+
+            % new vectors.
+            % TODO(@anton) do we want to also re-organize mult and res?
+            new_w = [];
+            new_lb = [];
+            new_ub = [];
+            new_init = [];
+
+            % First re-normalize 0 dimensional vars (i.e indicies 1x1)
+            d_vars = vars_by_depth{1};
+            for jj=1:numel(d_vars)
+                var = obj.variables.(d_vars{jj});
+                n_new_w = length(new_w);
+                v_w = var(0);
+                v_lb = var(0).lb;
+                v_ub = var(0).ub;
+                v_init = var(0).init;
+
+                new_w = vertcat(new_w, v_w);
+                new_lb = [new_lb; v_lb];
+                new_ub = [new_ub; v_ub];
+                new_init = [new_init; v_init];
+
+                n = length(v_w);
+                indices = (n_new_w+1):(n_new_w+n);
+                var.indices{1} = indices;
+            end
+            
+            % now handle rest of vars
+            dims = 1:length(lengths);
+            for ii=1:size(inorderlst,1)
+                % This is an ugly hack. we create a cell array in order to create a comma separated list for indexing
+                curr = inorderlst(ii,:);
+                mods = mod(ii-1,modlist);
+                mask = mods == 0;
+                dims_to_process = dims(mask);
+                %disp(dims_to_process)
+                %disp(curr)
+                for dim=dims_to_process
+                    d_vars = vars_by_depth{dim+1};
+                    curr_for_dim = num2cell(curr(1:dim));
+                    %disp(curr(1:dim))
+                    for jj=1:numel(d_vars)
+                        var = obj.variables.(d_vars{jj});
+                        n_new_w = length(new_w);
+                        v_w = var(curr_for_dim{:});
+                        v_lb = var(curr_for_dim{:}).lb;
+                        v_ub = var(curr_for_dim{:}).ub;
+                        v_init = var(curr_for_dim{:}).init;
+
+                        new_w = vertcat(new_w, v_w);
+                        new_lb = [new_lb; v_lb];
+                        new_ub = [new_ub; v_ub];
+                        new_init = [new_init; v_init];
+
+                        n = length(v_w);
+                        indices = (n_new_w+1):(n_new_w+n);
+                        curr_for_dim_adj = num2cell(curr(1:dim)+1);
+                        var.indices{curr_for_dim_adj{:}} = indices;
+                    end
+                end
+            end
+            obj.w = new_w;
+            obj.lb = new_lb;
+            obj.ub = new_ub;
+            obj.init = new_init;
         end
     end
     
@@ -317,4 +405,9 @@ function sym = define_casadi_symbolic(type, name, dims, sparsity)
     else
         error('Type must be MX or SX.')
     end
+end
+
+function valid = valid_index(var,idx)
+    ni = length(idx);
+    nv = ndims(idx);
 end

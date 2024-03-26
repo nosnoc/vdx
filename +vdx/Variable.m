@@ -61,7 +61,7 @@ classdef Variable < handle &...
         end
 
         function varargout = size(obj,varargin)
-            varargout = size(obj.indices, varargin{:});
+            varargout = {size(obj.indices, varargin{:})};
             %TODO(anton) needs to return correct values for varargin
         end
         
@@ -210,7 +210,7 @@ classdef Variable < handle &...
                 arg = varargin{1};
                 indices = obj.vector.add_variable(arg{:});
                 adj_ind = index_adjustment(index_op.Indices);
-                obj.indices{adj_ind{:}} = indices;
+                obj.indices{adj_ind{:},1} = indices;
             else
                 if index_op(2).Type == 'Dot'
                     if all(cellfun(@(x) isscalar(x) & ~ischar(x), index_op(1).Indices))
