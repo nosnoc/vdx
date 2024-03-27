@@ -30,19 +30,21 @@ classdef Problem < handle &...
             obj.f_result = 0;
         end
 
-        function create_solver(obj, casadi_options)
+        function create_solver(obj, casadi_options, plugin)
             w = obj.w(:);
             g = obj.g(:);
             p = obj.p(:);
             f = obj.f;
 
+            if ~exist('plugin')
+                plugin = 'ipopt';
+            end
+
             casadi_nlp = struct('x', w, 'g', g, 'p', p, 'f', f);
-            % TODO(@anton) more options than just ipopt.
-            % TODO(@anton) options struct should probably be separated into top level and casad opts.
-            obj.solver = casadi.nlpsol('proj_fesd', 'ipopt', casadi_nlp, casadi_options);
+            obj.solver = casadi.nlpsol('proj_fesd', plugin, casadi_nlp, casadi_options);
         end
 
-        function stats = solve(obj)
+        function [stats, nlp_results] = solve(obj)
             nlp_results = obj.solver('x0', obj.w.init,...
                 'lbx', obj.w.lb,...
                 'ubx', obj.w.ub,...

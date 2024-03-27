@@ -46,7 +46,7 @@ classdef Variable < handle &...
             out = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
             out = permute(out, ndims(out):-1:1);
             out = [out{:}];
-        end
+        end 
     end
 
     methods(Access=public)
@@ -238,7 +238,7 @@ classdef Variable < handle &...
                 end
             else
                 if index_op(2).Type == 'Dot'
-                    if all(cellfun(@(x) isscalar(x) & ~ischar(x), index_op(1).Indices))
+                    if is_index_scalar(index_op(1).Indices)
                         switch(index_op(2).Name)
                           case "lb"
                             adj_ind = index_adjustment(index_op(1).Indices);
@@ -253,11 +253,25 @@ classdef Variable < handle &...
                             error('vdx only supports assigning lb, ub, or init for a variable via dot indexing');
                         end
                     else
-                        error("Currently vdx allows only scalar assignment to lb, ub, or init via dot indexing")
+                        % TODO (@anton) preempt wrong size with a good error
+                        % TODO (@anton) allow for structured right hand side
+                        switch(index_op(2).Name)
+                          case "lb"
+                            adj_ind = index_adjustment(index_op(1).Indices);
+                            obj.vector.lb(obj.indices{adj_ind{:}}) = varargin{1};
+                          case "ub"
+                            adj_ind = index_adjustment(index_op(1).Indices);
+                            obj.vector.ub(obj.indices{adj_ind{:}}) = varargin{1};
+                          case "init"
+                            adj_ind = index_adjustment(index_op(1).Indices);
+                            obj.vector.init(obj.indices{adj_ind{:}}) = varargin{1};
+                          otherwise
+                            error('vdx only supports assigning lb, ub, or init for a variable via dot indexing');
+                        end
                     end
                 else
                     error('unsupported indexing');
-                    % TODO(@anton) better error here.
+                    % TODO(@anton) better error here, (maybe do some heuristic on what user was trying to do).
                 end
             end
             % TODO(@anton) dot indexng synatctic sugar needs some more thought and possibly a _lot_ more logic to handle
