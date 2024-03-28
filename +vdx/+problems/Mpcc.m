@@ -21,12 +21,13 @@ classdef Mpcc < vdx.Problem
 
             mpcc_struct = struct('x', w, 'g', g, 'p', p, 'G', G, 'H', H, 'f', f);
             
-            % TODO(@anton) figure out if we want to create a standard repository for mpcc solvers or if they should live in nosnoc
-            obj.solver = nosnoc.solver.mpccsol('name', 'type', mpcc_struct, options); 
+            % TODO(@anton) figure out if we want to create a standard repository for mpcc solvers or if they should live in nosnoc.
+            %              My current thought is to move it out so we don't have circular dependency here. (alternatively move this into nosnoc?)
+            obj.solver = nosnoc.solver.mpccsol('name', 'type', mpcc_struct, options);
         end
 
         function stats = solve(obj)
-            nlp_results = obj.solver('x0', obj.w.init,...
+            mpcc_results = obj.solver('x0', obj.w.init,...
                 'lbx', obj.w.lb,...
                 'ubx', obj.w.ub,...
                 'lbg', obj.g.lb,...
@@ -37,12 +38,15 @@ classdef Mpcc < vdx.Problem
             if ~obj.solver.stats.success
                 %warning("failed to converge")
             end
-            obj.w.res = full(nlp_results.x);
-            obj.w.mult = full(nlp_results.lam_x);
-            obj.g.res = full(nlp_results.g);
-            obj.g.mult = full(nlp_results.lam_g);
-            obj.p.mult = full(nlp_results.lam_p);
-            obj.f_result = full(nlp_results.f);
+            obj.w.res = full(mpcc_results.x);
+            obj.w.mult = full(mpcc_results.lam_x);
+            obj.g.res = full(mpcc_results.g);
+            obj.g.mult = full(mpcc_results.lam_g);
+            obj.p.mult = full(mpcc_results.lam_p);
+            obj.f_result = full(mpcc_results.f);
+            obj.G.res = full(mpcc_results.G);
+            obj.H.res = full(mpcc_results.H);
+            % TODO(@anton) multipliers for G and H
             stats = obj.solver.stats;
         end
     end
