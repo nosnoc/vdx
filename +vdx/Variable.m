@@ -19,6 +19,8 @@ classdef Variable < handle &...
         init
         res
         mult
+
+        depth
     end
     
     methods
@@ -46,7 +48,12 @@ classdef Variable < handle &...
             out = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
             out = permute(out, ndims(out):-1:1);
             out = [out{:}];
-        end 
+        end
+
+        function out = get.depth(obj)
+            sz = size(obj.indices);
+            out = sum(sz > 1);
+        end
     end
 
     methods(Access=public)

@@ -121,6 +121,14 @@ classdef Vector < handle &...
             indices = (n_w+1):(n_w+n);
         end
 
+        function add_variable_group(obj, name, vars)
+            if isfield(obj.variables,name)
+                error('Variable or VariableGroup with this name already exists')
+            else
+                obj.variables.(name) = vdx.VariableGroup(vars,obj,[]);
+            end
+        end
+
         function out = cat(dim,varargin)
             error('Concatenation not (yet) supported')
             % TODO(@anton) This is certainly possible but will take some work 
@@ -226,6 +234,9 @@ classdef Vector < handle &...
             % get depth
             lengths = 1;
             for ii=1:numel(vars)
+                if isa(obj.variables.(vars{ii}), 'vdx.VariableGroup')
+                    continue
+                end
                 s = size(obj.variables.(vars{ii}));
                 dims = ndims(obj.variables.(vars{ii}));
                 ls = length(s);
@@ -244,8 +255,10 @@ classdef Vector < handle &...
                 vars_by_depth{ii} = {};
             end
             for ii=1:numel(vars)
-                sz = size(obj.variables.(vars{ii}));
-                dims = sum(sz > 1)+1;
+                if isa(obj.variables.(vars{ii}), 'vdx.VariableGroup')
+                    continue
+                end
+                dims = obj.variables.(vars{ii}).depth+1;
                 vars_by_depth{dims} = vertcat(vars_by_depth{dims}, vars(ii));
             end
             
