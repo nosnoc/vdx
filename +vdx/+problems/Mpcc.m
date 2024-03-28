@@ -11,7 +11,7 @@ classdef Mpcc < vdx.Problem
             obj.H = vdx.Vector(obj, 0, inf, 0);
         end
 
-        function create_solver(obj, options)
+        function create_solver(obj, options, plugin)
             w = obj.w(:);
             g = obj.g(:);
             G = obj.G(:);
@@ -19,11 +19,15 @@ classdef Mpcc < vdx.Problem
             p = obj.p(:);
             f = obj.f;
 
+            if ~exist('plugin')
+                plugin = 'relaxation';
+            end
+
             mpcc_struct = struct('x', w, 'g', g, 'p', p, 'G', G, 'H', H, 'f', f);
             
             % TODO(@anton) figure out if we want to create a standard repository for mpcc solvers or if they should live in nosnoc.
             %              My current thought is to move it out so we don't have circular dependency here. (alternatively move this into nosnoc?)
-            obj.solver = nosnoc.solver.mpccsol('name', 'type', mpcc_struct, options);
+            obj.solver = nosnoc.solver.mpccsol('name', 'relaxation', mpcc_struct, options);
         end
 
         function stats = solve(obj)

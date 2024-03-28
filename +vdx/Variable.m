@@ -249,8 +249,11 @@ classdef Variable < handle &...
                           case "init"
                             adj_ind = index_adjustment(index_op(1).Indices);
                             obj.vector.init(obj.indices{adj_ind{:}}) = varargin{1};
+                          case "mult"
+                            adj_ind = index_adjustment(index_op(1).Indices);
+                            obj.vector.mult(obj.indices{adj_ind{:}}) = varargin{1};
                           otherwise
-                            error('vdx only supports assigning lb, ub, or init for a variable via dot indexing');
+                            error('vdx only supports assigning lb, ub, mult, or init for a variable via dot indexing');
                         end
                     else
                         % TODO (@anton) preempt wrong size with a good error
@@ -265,8 +268,11 @@ classdef Variable < handle &...
                           case "init"
                             adj_ind = index_adjustment(index_op(1).Indices);
                             obj.vector.init(obj.indices{adj_ind{:}}) = varargin{1};
+                          case "mult"
+                            adj_ind = index_adjustment(index_op(1).Indices);
+                            obj.vector.mult(obj.indices{adj_ind{:}}) = varargin{1};
                           otherwise
-                            error('vdx only supports assigning lb, ub, or init for a variable via dot indexing');
+                            error('vdx only supports assigning lb, ub, mult, or init for a variable via dot indexing');
                         end
                     end
                 else
