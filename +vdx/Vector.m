@@ -74,10 +74,11 @@ classdef Vector < handle &...
 
             % Handle non-symbolic input as (name, size) pair
             if iscell(symbolic)
-                name = symbolic{1};
-                len = symbolic{2};
-
-                symbolic = define_casadi_symbolic(class(obj.w), name, len);
+                if ischar(symbolic{1})
+                    name = symbolic{1};
+                    len = symbolic{2};
+                    symbolic = define_casadi_symbolic(class(obj.w), name, len);
+                end
             end
 
             % Get size and populate possibly empty values

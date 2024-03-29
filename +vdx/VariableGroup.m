@@ -1,5 +1,6 @@
 classdef VariableGroup < handle &...
-        matlab.mixin.indexing.RedefinesParen
+        matlab.mixin.indexing.RedefinesParen & ...
+        matlab.mixin.indexing.RedefinesBrace
     properties
         members
         
@@ -115,11 +116,93 @@ classdef VariableGroup < handle &...
             end
         end
 
+        function varargout = braceReference(obj, index_op)
+            members = obj.members;
+            if ~is_index_scalar(index_op(1).Indices)
+                error('VariableGroups only permit scalar indexing for now.')
+            end
+            if isscalar(index_op)
+                adj_ind = index_adjustment(index_op.Indices);
+                symbolics = [];
+                for v=members
+                    var = obj.vector.(v);
+                    depth = var.depth;
+                    vsymbolics = cellfun(@(x) obj.vector.w(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                    symbolics = [symbolics;vsymbolics{:}];
+                end
+                out = squeeze(symbolics);
+            else
+                if index_op(2).Type == 'Dot'
+                    switch(index_op(2).Name)
+                      case "lb"
+                        lb = [];
+                        for v=members
+                            var = obj.vector.(v);
+                            depth = var.depth;
+                            vlb = cellfun(@(x) obj.vector.lb(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            lb = [lb;vlb];
+                        end
+                        out = squeeze(lb);
+                      case "ub"
+                        ub = [];
+                        for v=members
+                            var = obj.vector.(v);
+                            depth = var.depth;
+                            vub = cellfun(@(x) obj.vector.ub(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            ub = [ub;vub];
+                        end
+                        out = squeeze(ub);
+                      case "init"
+                        init = [];
+                        for v=members
+                            var = obj.vector.(v);
+                            depth = var.depth;
+                            vinit = cellfun(@(x) obj.vector.init(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            init = [init;vinit];
+                        end
+                        out = squeeze(init);
+                      case "res"
+                        res = [];
+                        for v=members
+                            var = obj.vector.(v);
+                            depth = var.depth;
+                            vres = cellfun(@(x) obj.vector.res(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            res = [res;vres];
+                        end
+                        out = squeeze(res);
+                      case "mult"
+                        mult = [];
+                        for v=members
+                            var = obj.vector.(v);
+                            depth = var.depth;
+                            vmult = cellfun(@(x) obj.vector.mult(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            mult = [mult;vmult];
+                        end
+                        out = squeeze(mult);
+                      otherwise
+                        error('vdx only supports getting lb, ub, init, res, or mult for a variable group via dot indexing');
+                    end
+                else
+                    error('unsupported indexing');
+                    % TODO(@anton) better error here.
+                end
+            end
+            varargout{1} = out;
+        end
+
         function obj = parenAssign(obj,index_op,varargin)
             error('Assigning to a variable group is not supported')
         end
 
         function n = parenListLength(obj,index_op,ctx)
+           n = 1;
+        end
+
+        function obj = braceAssign(obj,index_op,varargin)
+            error('Assigning to a variable group is not supported')
+        end
+
+        function n = braceListLength(obj,index_op,ctx)
            n = 1;
         end
 
