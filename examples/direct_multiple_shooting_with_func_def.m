@@ -6,6 +6,7 @@ N = 20; % number of control intervals
 x1 = SX.sym('x1');
 x2 = SX.sym('x2');
 x = [x1; x2];
+xnext = SX.sym('y',2);
 u = SX.sym('u');
 
 % Model equations
@@ -36,7 +37,7 @@ for j=1:M
     Q = Q + DT/6*(k1_q + 2*k2_q + 2*k3_q + k4_q);
 end
 F = Function('F', {X0, U}, {X, Q}, {'x0','p'}, {'xf', 'qf'});
-dyn = Function('dyn', {X0, X1, U}, {X-X1});
+dyn = Function('dyn', {X1, X0, U}, {X-X1});
 qf = Function('qf', {X0, U}, {Q});
 g_path = Function('g_path', {x}, {x1+x2+2});
 
@@ -47,10 +48,10 @@ prob = vdx.Problem('casadi_type', 'MX');
 prob.w.x(0) = {{'X_0', 2},[0;1], [0;1], [0;1]};
 prob.w.x(1:N) = {{'X', 2}, [-0.25;-inf], [inf;inf], [0;0]};
 prob.w.u(1:N) = {{'U', 1},-1,1,0};
-prob.w.add_variable_group('stage_vars',["x", "u"]);
-prob.w.add_variable_group('dynamics_args',["x", "x", "u"], {[],@vdx.indexing.previous,[]});
-prob.g.path(0:N) = {{g_path, ["x"], prob.w, {}},0,inf};
-prob.g.dynamics(1:N) = {{dyn, ["x", "x", "u"], prob.w, {[],@vdx.indexing.previous,[]}},0,inf};
+prob.w.add_variable_group('stage_vars',{prob.w.x, prob.w.u});
+prob.w.add_variable_group('dynamics_args',{prob.w.x, prob.w.x, prob.w.u}, {[],@vdx.indexing.previous,[]});
+%prob.g.path(0:N) = {{g_path, {prob.w.x}},0,inf};
+prob.g.dynamics(1:N) = {{dyn, {prob.w.x, prob.w.x, prob.w.u}, {[],@vdx.indexing.previous,[]}}};
 Xk = prob.w.x(0);
 % Formulate the NLP
 for k=1:N

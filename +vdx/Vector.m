@@ -126,7 +126,7 @@ classdef Vector < handle &...
             if isfield(obj.variables,name)
                 error('Variable or VariableGroup with this name already exists')
             else
-                obj.variables.(name) = vdx.VariableGroup(vars,obj,[], varargin{:});
+                obj.variables.(name) = vdx.VariableGroup(vars, varargin{:});
             end
         end
 

@@ -3,30 +3,22 @@ classdef VariableGroup < handle &...
         matlab.mixin.indexing.RedefinesBrace
     properties
         members
-        
-        %
-        vector
 
         % Index rules must each be an object that takes an index (or many indices as cells) and a vdx.Variable and return an n
         % this should be a dictionary.
         index_rules
-
-        %
-        solver
     end
 
     properties (Dependent)
     end
     
     methods(Access=public)
-        function obj = VariableGroup(members, vector, solver, varargin)
+        function obj = VariableGroup(members, varargin)
             p = inputParser;
             addOptional(p, 'index_rules', {});
             parse(p, varargin{:});
             
             obj.members = members; % TODO(@anton) maybe make sure these are ok, i.e. all dims up to depth match and throw a good error
-            obj.vector = vector;
-            obj.solver = solver;
             obj.index_rules = p.Results.index_rules;
             
             % Populate index rules with identity.
@@ -61,12 +53,11 @@ classdef VariableGroup < handle &...
             if isscalar(index_op)
                 symbolics = [];
                 for ii=1:length(members)
-                    v = members(ii);
-                    var = obj.vector.(v);
+                    var = members{ii};
                     depth = var.depth;
                     index_rule = obj.index_rules{ii};
                     adj_ind = index_rule(index_op.Indices, var);
-                    vsymbolics = cellfun(@(x) obj.vector.w(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                    vsymbolics = cellfun(@(x) var.vector.w(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                     symbolics = [symbolics;vsymbolics{:}];
                 end
                 out = squeeze(symbolics);
@@ -76,60 +67,55 @@ classdef VariableGroup < handle &...
                       case "lb"
                         lb = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vlb = cellfun(@(x) obj.vector.lb(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vlb = cellfun(@(x) var.vector.lb(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             lb = [lb;vlb];
                         end
                         out = squeeze(lb);
                       case "ub"
                         ub = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vub = cellfun(@(x) obj.vector.ub(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vub = cellfun(@(x) var.vector.ub(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             ub = [ub;vub];
                         end
                         out = squeeze(ub);
                       case "init"
                         init = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vinit = cellfun(@(x) obj.vector.init(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vinit = cellfun(@(x) var.vector.init(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             init = [init;vinit];
                         end
                         out = squeeze(init);
                       case "res"
                         res = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vres = cellfun(@(x) obj.vector.res(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vres = cellfun(@(x) var.vector.res(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             res = [res;vres];
                         end
                         out = squeeze(res);
                       case "mult"
                         mult = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vmult = cellfun(@(x) obj.vector.mult(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vmult = cellfun(@(x) var.vector.mult(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             mult = [mult;vmult];
                         end
                         out = squeeze(mult);
@@ -157,12 +143,11 @@ classdef VariableGroup < handle &...
             if isscalar(index_op)
                 symbolics = [];
                 for ii=1:length(members)
-                    v = members(ii);
-                    var = obj.vector.(v);
+                    var = members{ii};
                     depth = var.depth;
                     index_rule = obj.index_rules{ii};
                     adj_ind = index_rule(index_op.Indices(1:depth), var);
-                    vsymbolics = cellfun(@(x) obj.vector.w(x), var.indices(adj_ind{:},1), 'uni', false);
+                    vsymbolics = cellfun(@(x) var.vector.w(x), var.indices(adj_ind{:},1), 'uni', false);
                     symbolics = [symbolics;vsymbolics];
                 end
                 out = squeeze(symbolics);
@@ -172,60 +157,55 @@ classdef VariableGroup < handle &...
                       case "lb"
                         lb = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vlb = cellfun(@(x) obj.vector.lb(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vlb = cellfun(@(x) var.vector.lb(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             lb = [lb;vlb];
                         end
                         out = squeeze(lb);
                       case "ub"
                         ub = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vub = cellfun(@(x) obj.vector.ub(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vub = cellfun(@(x) var.vector.ub(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             ub = [ub;vub];
                         end
                         out = squeeze(ub);
                       case "init"
                         init = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vinit = cellfun(@(x) obj.vector.init(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vinit = cellfun(@(x) var.vector.init(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             init = [init;vinit];
                         end
                         out = squeeze(init);
                       case "res"
                         res = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vres = cellfun(@(x) obj.vector.res(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vres = cellfun(@(x) var.vector.res(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             res = [res;vres];
                         end
                         out = squeeze(res);
                       case "mult"
                         mult = [];
                         for ii=1:length(members)
-                            v = members(ii);
-                            var = obj.vector.(v);
+                            var = members{ii};
                             depth = var.depth;
                             index_rule = obj.index_rules{ii};
                             adj_ind = index_rule(index_op.Indices, var);
-                            vmult = cellfun(@(x) obj.vector.mult(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                            vmult = cellfun(@(x) var.vector.mult(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                             mult = [mult;vmult];
                         end
                         out = squeeze(mult);

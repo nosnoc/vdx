@@ -219,8 +219,8 @@ classdef Variable < handle &...
                 if is_index_scalar(index_op(1).Indices) % A single scalar variable     
                     symbolic = arg{1}; % TODO this living here implies we should move other handeling out of 'add_variable'
                     if iscell(symbolic) && isa(symbolic{1}, 'casadi.Function')
-                        varargs = symbolic(4:end);
-                        arg_group = vdx.VariableGroup(symbolic{2}, symbolic{3}, [], varargs{:});
+                        varargs = symbolic(3:end);
+                        arg_group = vdx.VariableGroup(symbolic{2}, varargs{:});
                         fun = symbolic{1};
                         fargs = arg_group{index_op(1).Indices{:}};
                         symbolic = fun(fargs{:});
@@ -239,7 +239,8 @@ classdef Variable < handle &...
                     if iscell(x)
                         if isa(x{1}, 'casadi.Function')
                             is_fun = true;
-                            arg_group = vdx.VariableGroup(x{2}, x{3}, []);
+                            varargs = x(3:end);
+                            arg_group = vdx.VariableGroup(x{2}, varargs{:});
                             fun = x{1};
                         else
                             name = x{1}; n = x{2};
@@ -350,7 +351,7 @@ classdef Variable < handle &...
 
     methods (Static, Access=public)
         function obj = empty()
-            obj = NosnocVariable([],[]);
+            obj = [];
         end
     end
 end
