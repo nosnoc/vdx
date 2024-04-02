@@ -8,50 +8,49 @@ x2 = SX.sym('x2');
 x = [x1; x2];
 xnext = SX.sym('y',2);
 u = SX.sym('u');
+p = SX.sym('p')
 
 % Model equations
-xdot = [(1-x2^2)*x1 - x2 + u; x1];
+xdot = [(1-x2^2)*x1 - x2 + u; p*x1];
 
 % Objective term
 L = x1^2 + x2^2 + u^2;
-
-% Continuous time dynamics
-f = Function('f', {x, u}, {xdot, L});
 
 
 % Fixed step Runge-Kutta 4 integrator
 M = 4; % RK4 steps per interval
 DT = T/N/M;
-f = Function('f', {x, u}, {xdot, L});
+f = Function('f', {x, u, p}, {xdot, L});
 X0 = MX.sym('X0', 2);
 X1 = MX.sym('X1', 2);
 U = MX.sym('U');
+P = MX.sym('P');
 X = X0;
 Q = 0;
 for j=1:M
-    [k1, k1_q] = f(X, U);
-    [k2, k2_q] = f(X + DT/2 * k1, U);
-    [k3, k3_q] = f(X + DT/2 * k2, U);
-    [k4, k4_q] = f(X + DT * k3, U);
+    [k1, k1_q] = f(X, U, P);
+    [k2, k2_q] = f(X + DT/2 * k1, U, P);
+    [k3, k3_q] = f(X + DT/2 * k2, U, P);
+    [k4, k4_q] = f(X + DT * k3, U, P);
     X=X+DT/6*(k1 +2*k2 +2*k3 +k4);
     Q = Q + DT/6*(k1_q + 2*k2_q + 2*k3_q + k4_q);
 end
-F = Function('F', {X0, U}, {X, Q}, {'x0','p'}, {'xf', 'qf'});
-dyn = Function('dyn', {X1, X0, U}, {X-X1});
-qf = Function('qf', {X0, U}, {Q});
+F = Function('F', {X0, U, P}, {X, Q}, {'x0','u', 'p'}, {'xf', 'qf'});
+dyn = Function('dyn', {X1, X0, U, P}, {X-X1});
+qf = Function('qf', {X0, U, P}, {Q});
 g_path = Function('g_path', {x}, {x1+x2+2});
 
 % create a problem
 prob = vdx.Problem('casadi_type', 'MX');
 
-% "Lift" initial conditions
+prob.p.p(0) = {P, -inf, inf, 1};
 prob.w.x(0) = {{'X_0', 2},[0;1], [0;1], [0;1]};
 prob.w.x(1:N) = {{'X', 2}, [-0.25;-inf], [inf;inf], [0;0]};
 prob.w.u(1:N) = {{'U', 1},-1,1,0};
 prob.w.add_variable_group('stage_vars',{prob.w.x, prob.w.u});
 prob.w.add_variable_group('dynamics_args',{prob.w.x, prob.w.x, prob.w.u}, {[],@vdx.indexing.previous,[]});
-%prob.g.path(0:N) = {{g_path, {prob.w.x}},0,inf};
-prob.g.dynamics(1:N) = {{dyn, {prob.w.x, prob.w.x, prob.w.u}, {[],@vdx.indexing.previous,[]}}};
+prob.g.path(0:N) = {{g_path, {prob.w.x}},0,inf};
+prob.g.dynamics(1:N) = {{dyn, {prob.w.x, prob.w.x, prob.w.u, prob.p.p}, {[],@vdx.indexing.previous,[],[]}}};
 Xk = prob.w.x(0);
 % Formulate the NLP
 for k=1:N
@@ -59,7 +58,7 @@ for k=1:N
     Uk = prob.w.u(k);
 
     % Integrate till the end of the interval
-    Fk = F('x0', Xk, 'p', Uk);
+    Fk = F('x0', Xk, 'u', Uk, 'p', prob.p.p(0));
     prob.f=prob.f+Fk.qf;
 
     % New NLP variable for state at end of interval
