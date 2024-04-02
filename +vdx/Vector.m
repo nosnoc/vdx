@@ -122,11 +122,11 @@ classdef Vector < handle &...
             indices = (n_w+1):(n_w+n);
         end
 
-        function add_variable_group(obj, name, vars)
+        function add_variable_group(obj, name, vars, varargin)
             if isfield(obj.variables,name)
                 error('Variable or VariableGroup with this name already exists')
             else
-                obj.variables.(name) = vdx.VariableGroup(vars,obj,[]);
+                obj.variables.(name) = vdx.VariableGroup(vars,obj,[], varargin{:});
             end
         end
 

@@ -169,7 +169,7 @@ classdef Variable < handle &...
             if isscalar(index_op)
                 % TODO(@anton) Decide whether we squeeze, or concatenate with sorted indices.
                 %              This is in my opinion purely a decision that should be made and stuck to.
-                adj_ind = index_adjustment(index_op.Indices);
+                adj_ind = vdx.indexing.identity(index_op.Indices, obj);
                 symbolics = cellfun(@(x) obj.vector.w(x), obj.indices(adj_ind{:}), 'uni', false);
                 out = squeeze(symbolics);
             else
@@ -219,7 +219,8 @@ classdef Variable < handle &...
                 if is_index_scalar(index_op(1).Indices) % A single scalar variable     
                     symbolic = arg{1}; % TODO this living here implies we should move other handeling out of 'add_variable'
                     if iscell(symbolic) && isa(symbolic{1}, 'casadi.Function')
-                        arg_group = vdx.VariableGroup(symbolic{2}, symbolic{3}, []);
+                        varargs = symbolic(4:end);
+                        arg_group = vdx.VariableGroup(symbolic{2}, symbolic{3}, [], varargs{:});
                         fun = symbolic{1};
                         fargs = arg_group{index_op(1).Indices{:}};
                         symbolic = fun(fargs{:});

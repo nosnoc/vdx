@@ -62,6 +62,8 @@ for k=1:N
     prob.g.dynamics(k) = {Xk_end-Xk};
 end
 
+vargroup = vdx.VariableGroup(["x","x"], prob.w, prob.solver, {[], @vdx.indexing.previous});
+
 % re-sort for that sweet sweet block diagonal structure
 prob.w.sort_by_index();
 prob.g.sort_by_index();

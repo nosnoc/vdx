@@ -23,6 +23,7 @@ M = 4; % RK4 steps per interval
 DT = T/N/M;
 f = Function('f', {x, u}, {xdot, L});
 X0 = MX.sym('X0', 2);
+X1 = MX.sym('X1', 2);
 U = MX.sym('U');
 X = X0;
 Q = 0;
@@ -35,6 +36,8 @@ for j=1:M
     Q = Q + DT/6*(k1_q + 2*k2_q + 2*k3_q + k4_q);
 end
 F = Function('F', {X0, U}, {X, Q}, {'x0','p'}, {'xf', 'qf'});
+dyn = Function('dyn', {X0, X1, U}, {X-X1});
+qf = Function('qf', {X0, U}, {Q});
 g_path = Function('g_path', {x}, {x1+x2+2});
 
 % create a problem
@@ -44,8 +47,10 @@ prob = vdx.Problem('casadi_type', 'MX');
 prob.w.x(0) = {{'X_0', 2},[0;1], [0;1], [0;1]};
 prob.w.x(1:N) = {{'X', 2}, [-0.25;-inf], [inf;inf], [0;0]};
 prob.w.u(1:N) = {{'U', 1},-1,1,0};
-prob.w.add_variable_group('stage_vars',["x", "u"])
-prob.g.path(0:N) = {{g_path, ["x"], prob.w},0,inf};
+prob.w.add_variable_group('stage_vars',["x", "u"]);
+prob.w.add_variable_group('dynamics_args',["x", "x", "u"], {[],@vdx.indexing.previous,[]});
+prob.g.path(0:N) = {{g_path, ["x"], prob.w, {}},0,inf};
+prob.g.dynamics(1:N) = {{dyn, ["x", "x", "u"], prob.w, {[],@vdx.indexing.previous,[]}},0,inf};
 Xk = prob.w.x(0);
 % Formulate the NLP
 for k=1:N
@@ -54,14 +59,10 @@ for k=1:N
 
     % Integrate till the end of the interval
     Fk = F('x0', Xk, 'p', Uk);
-    Xk_end = Fk.xf;
     prob.f=prob.f+Fk.qf;
 
     % New NLP variable for state at end of interval
     Xk = prob.w.x(k);
-    
-    % Add equality constraint
-    prob.g.dynamics(k) = {Xk_end-Xk};
 end
 
 % re-sort for that sweet sweet block diagonal structure
