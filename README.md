@@ -95,6 +95,16 @@ lambda_x = prob.w.x.mult;
 lambda_y_ii = prob.w.y(ii).mult;
 ```
 
+### Other Problem types
+We also provide a package of specialized problem formulations.
+Currently the only supported formulation is for Mathematical Programs with Complementarity Constraints (MPCC):
+```
+minimize f(w,p), subject to
+lbw <= w <= ubw
+lbg <= g(w,p) <= ubg
+0 <= G(w,p) perp H(w,p) >= 0
+```
+
 ## Implementation Details and Notes
 There are some details that are important to note:
 * Indexing into variable class is zero indexed.
