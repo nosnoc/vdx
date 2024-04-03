@@ -232,7 +232,7 @@ classdef Variable < handle &...
                 elseif is_index_logical_array(index_op(1).Indices) % A boolean array representing where variables should be created
                     error('indexing via logical array not yet supported')
                 else % Assume we want to assign multiple values
-                    inorderlst = table2array(combinations(index_op.Indices{:}));
+                    inorderlst = all_combinations(index_op.Indices{:});
                     % Check first argument and adjust naming
                     x = arg{1};
                     is_fun = false;

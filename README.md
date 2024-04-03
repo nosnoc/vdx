@@ -50,7 +50,7 @@ prob.w.x(1).init = 7;
 
 ### Variable Groups
 VDX provides the facility to group variables and index into this group.
-```Matlab
+```
 var_group = vdx.VariableGroup({<members>}[, {<indexing rules>}])
 ```
 where the first argument is a list of `vdx.Variable` and the optional second parameter allows for a custom indexing function with the signature: `(index,vdx.Variable) -> index`.
@@ -63,7 +63,7 @@ The syntax for adding a constraint is identical to the syntax for adding vectors
 
 Constraints for multiple indices can be created via the special syntax:
 
-```Matlab
+```
 <variable>.<class>(<index>) = {{<function:casadi.Function>, {<arguments>}[, {<indexing rules>}]}[,<lower bound>, <upper bound>, <initial value>]}
 ```
 with the arguments and indexing rules forming the variable group which makes up the arguments to the function.

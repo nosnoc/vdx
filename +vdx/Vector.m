@@ -272,7 +272,7 @@ classdef Vector < handle &...
             modlist = flip(modlist(1:end-1));
             
             % We subtract 1 to get the 0 indexing correct :)
-            inorderlst = table2array(combinations(indices{:}))-1;
+            inorderlst = all_combinations(indices{:})-1;
 
             % new vectors.
             % TODO(@anton) do we want to also re-organize mult and res?
