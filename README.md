@@ -38,14 +38,36 @@ The syntax for adding a variable is as follows:
 <variable>.<class>(<index>) = {{<var_name>, <var_length>}[,<lower bound>, <upper bound>, <initial value>]}
 ```
 the first of which takes a CasADi symbolic vector as its first member and the second generates the CasADi symbolic from a name and a vector size.
+
+If `<index>` is not scalar one can initalize multiple indices at once. THis
+This is useful to compactly populate the variable in multiple dimensions.
 You can modify the bounds and initial values of a variable by assigning to the `lb`, `ub`, and `init` fields of a variable class:
 ```Matlab
 prob.w.x(1).lb = 5;
 prob.w.y(1).ub = 0;
 prob.w.x(1).init = 7;
 ```
+
+### Variable Groups
+VDX provides the facility to group variables and index into this group.
+```Matlab
+var_group = vdx.VariableGroup({<members>}[, {<indexing rules>}])
+```
+where the first argument is a list of `vdx.Variable` and the optional second parameter allows for a custom indexing function with the signature: `(index,vdx.Variable) -> index`.
+Simple indexing rules are implemented in `vdx.indexing` and include rules that map indicies to the (lexicographically) previous or next index.
+If variables of different dimension are used in the same variable group then the lower dimensioned variables are indexed by a truncation of the index.
+For example the group with `u` 10 by 1, and `x` 10 by 4, indexed at `(4,4)` would yield the vector: `[u(4), x(4,4)]`.
+
 ### Creating Constraints
 The syntax for adding a constraint is identical to the syntax for adding vectors, however the second syntax is not useful because it creates a new variable.
+
+Constraints for multiple indices can be created via the special syntax:
+
+```Matlab
+<variable>.<class>(<index>) = {{<function:casadi.Function>, {<arguments>}[, {<indexing rules>}]}[,<lower bound>, <upper bound>, <initial value>]}
+```
+with the arguments and indexing rules forming the variable group which makes up the arguments to the function.
+This is then applied for all the indices.
 
 ### Solving VDX Problems and Extracting Results
 Currently you can generate a CasADi `nlpsol` by calling `Problem.create_solver(casadi_options)` where the argument is a struct containing the CasADi nlpsol options.
