@@ -353,6 +353,10 @@ classdef Vector < handle &...
         end
 
         function obj = dotAssign(obj,index_op,varargin)
+            if string(version('-release')) < "2023a"
+                persistent matlab_bug_workaround_to_prevent_garbage_collection;
+                matlab_bug_workaround_to_prevent_garbage_collection = varargin{1};
+            end
             name = index_op(1).Name;
             if ~isfield(obj.variables,name)
                 obj.variables.(name) = vdx.Variable(obj,[]);
