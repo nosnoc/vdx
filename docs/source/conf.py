@@ -38,6 +38,7 @@ epub_show_urls = 'footnote'
 import os
 matlab_src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 print(matlab_src_dir)
+print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 matlab_short_links = True
 matlab_auto_link = "basic"
 primary_domain = "mat"
