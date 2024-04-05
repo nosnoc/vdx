@@ -1,5 +1,4 @@
 classdef Variable < handle &...
-        matlab.mixin.indexing.RedefinesBrace &...
         matlab.mixin.indexing.RedefinesParen &...
         matlab.mixin.Copyable
     properties
@@ -78,22 +77,22 @@ classdef Variable < handle &...
         end
         
         function output = print(obj, varargin)
-            w = false;
+            sym = false;
             lb = false;
             ub = false;
             init = false;
             res = false;
             mult = false;
             if isempty(varargin)
-                w = true;
+                sym = true;
                 lb = true;
                 ub = true;
                 init = true;
                 res = true;
                 mult = true;
             else
-                if any(ismember(lower(varargin), 'w'))
-                    w = true;
+                if any(ismember(lower(varargin), 'sym'))
+                    sym = true;
                 end
                 if any(ismember(lower(varargin), 'lb'))
                     lb = true;
@@ -129,7 +128,7 @@ classdef Variable < handle &...
             if mult
                 header = [header 'mult\t\t'];
             end
-            if w
+            if sym
                 header = [header 'sym\t\t'];
             end
             header = [header '\n'];
@@ -154,8 +153,8 @@ classdef Variable < handle &...
                 if mult
                     pline = [pline sprintf('%-8.5g\t', obj.vector.mult(ii))];
                 end
-                if w
-                    pline = [pline char(formattedDisplayText(obj.vector.w(ii)))];
+                if sym
+                    pline = [pline char(formattedDisplayText(obj.vector.sym(ii)))];
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
@@ -170,7 +169,7 @@ classdef Variable < handle &...
                 % TODO(@anton) Decide whether we squeeze, or concatenate with sorted indices.
                 %              This is in my opinion purely a decision that should be made and stuck to.
                 adj_ind = vdx.indexing.identity(index_op.Indices, obj);
-                symbolics = cellfun(@(x) obj.vector.w(x), obj.indices(adj_ind{:}), 'uni', false);
+                symbolics = cellfun(@(x) obj.vector.sym(x), obj.indices(adj_ind{:}), 'uni', false);
                 out = squeeze(symbolics);
             else
                 if index_op(2).Type == 'Dot'
@@ -315,25 +314,6 @@ classdef Variable < handle &...
         end
 
         function n = parenListLength(obj,index_op,ctx)
-           n = 1;
-        end
-
-        function varargout = braceReference(obj, index_op)
-            if isscalar(index_op)
-                values = cellfun(@(x) obj.solver.results.w(x), obj.indices, 'uni', false);
-                out = squeeze(obj.symbolics.(index_op));
-            else
-                error('Brace indexing only accesses current values of the solution and no chained indexing')
-            end
-            varargout{1} = out;
-        end
-
-        function obj = braceAssign(obj,index_op,varargin)
-            if isscalar(index_op)
-            end
-        end
-
-        function n = braceListLength(obj,index_op,ctx)
            n = 1;
         end
 

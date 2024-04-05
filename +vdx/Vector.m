@@ -1,10 +1,11 @@
 classdef Vector < handle &...
         matlab.mixin.indexing.RedefinesDot &...
         matlab.mixin.indexing.RedefinesParen &...
+        dynamicprops &...
         matlab.mixin.Copyable
     properties (Access=public)
         % Symbolic vector that this wraps TODO(@anton) possibly rename?
-        w
+        sym
         % Numeric vectors containing lower and upper bounds and initial data
         lb
         ub
@@ -27,6 +28,10 @@ classdef Vector < handle &...
         variables struct
     end
 
+    properties (Dependent)
+        
+    end
+
     methods (Access=public)
         function obj = Vector(problem, varargin)
             p = inputParser;
@@ -45,12 +50,7 @@ classdef Vector < handle &...
             obj.default_ub = p.Results.ub;
             obj.default_init = p.Results.init;
 
-            % casADi type
-            %obj.casadi_type = p.Results.casadi_type;
-
-            % TODO(@anton) How we handle MX and SX should possibly be decided here in a smarter way,
-            %              maybe as a flag to the constructor
-            obj.w = casadi.(p.Results.casadi_type);
+            sym = casadi.(p.Results.casadi_type);
             obj.lb = [];
             obj.ub = [];
             obj.init = [];
@@ -77,7 +77,7 @@ classdef Vector < handle &...
                 if ischar(symbolic{1})
                     name = symbolic{1};
                     len = symbolic{2};
-                    symbolic = define_casadi_symbolic(class(obj.w), name, len);
+                    symbolic = define_casadi_symbolic(class(sym), name, len);
                 end
             end
 
@@ -107,9 +107,9 @@ classdef Vector < handle &...
                 error("mismatched dims")
             end
 
-            n_w = size(obj.w, 1);
+            n_sym = size(obj.sym, 1);
 
-            obj.w = vertcat(obj.w, symbolic);
+            obj.sym = vertcat(obj.sym, symbolic);
             obj.lb = [obj.lb; lb];
             obj.ub = [obj.ub; ub];
             obj.init = [obj.init; initial];
@@ -119,7 +119,7 @@ classdef Vector < handle &...
             obj.res = [obj.res; zeros(n,1)];
             obj.mult = [obj.mult; zeros(n,1)];
 
-            indices = (n_w+1):(n_w+n);
+            indices = (n_sym+1):(n_sym+n);
         end
 
         function add_variable_group(obj, name, vars, varargin)
@@ -136,27 +136,27 @@ classdef Vector < handle &...
         end
 
         function varargout = size(obj,varargin)
-            varargout = size(obj.w, varargin{:});
+            varargout = size(sym, varargin{:});
             %TODO(anton) needs to return correct values for varargin and perhaps other cases?
         end
 
         function print(obj, varargin)
-            w = false;
+            sym = false;
             lb = false;
             ub = false;
             init = false;
             res = false;
             mult = false;
             if isempty(varargin)
-                w = true;
+                sym = true;
                 lb = true;
                 ub = true;
                 init = true;
                 res = true;
                 mult = true;
             else
-                if any(ismember(lower(varargin), 'w'))
-                    w = true;
+                if any(ismember(lower(varargin), 'sym'))
+                    sym = true;
                 end
                 if any(ismember(lower(varargin), 'lb'))
                     lb = true;
@@ -192,14 +192,14 @@ classdef Vector < handle &...
             if mult
                 header = [header 'mult\t\t'];
             end
-            if w
+            if sym
                 header = [header 'sym\t\t'];
             end
             header = [header '\n'];
             fprintf(header);
 
             % iterate over all requested values
-            n = size(obj.w, 1);
+            n = size(sym, 1);
             output = [];
             for ii=1:n
                 pline = [num2str(ii) '\t\t'];
@@ -218,8 +218,8 @@ classdef Vector < handle &...
                 if mult
                     pline = [pline sprintf('%-8.5g\t', obj.mult(ii))];
                 end
-                if w
-                    pline = [pline char(formattedDisplayText(obj.w(ii)))];
+                if sym
+                    pline = [pline char(formattedDisplayText(sym(ii)))];
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
@@ -276,7 +276,7 @@ classdef Vector < handle &...
 
             % new vectors.
             % TODO(@anton) do we want to also re-organize mult and res?
-            new_w = [];
+            new_sym = [];
             new_lb = [];
             new_ub = [];
             new_init = [];
@@ -285,19 +285,19 @@ classdef Vector < handle &...
             d_vars = vars_by_depth{1};
             for jj=1:numel(d_vars)
                 var = obj.variables.(d_vars{jj});
-                n_new_w = length(new_w);
-                v_w = var(0);
+                n_new_sym = length(new_sym);
+                v_sym = var(0);
                 v_lb = var(0).lb;
                 v_ub = var(0).ub;
                 v_init = var(0).init;
 
-                new_w = vertcat(new_w, v_w);
+                new_sym = vertcat(new_sym, v_sym);
                 new_lb = [new_lb; v_lb];
                 new_ub = [new_ub; v_ub];
                 new_init = [new_init; v_init];
 
-                n = length(v_w);
-                indices = (n_new_w+1):(n_new_w+n);
+                n = length(v_sym);
+                indices = (n_new_sym+1):(n_new_sym+n);
                 var.indices{1} = indices;
             end
             
@@ -317,25 +317,25 @@ classdef Vector < handle &...
                     %disp(curr(1:dim))
                     for jj=1:numel(d_vars)
                         var = obj.variables.(d_vars{jj});
-                        n_new_w = length(new_w);
-                        v_w = var(curr_for_dim{:});
+                        n_new_sym = length(new_sym);
+                        v_sym = var(curr_for_dim{:});
                         v_lb = var(curr_for_dim{:}).lb;
                         v_ub = var(curr_for_dim{:}).ub;
                         v_init = var(curr_for_dim{:}).init;
 
-                        new_w = vertcat(new_w, v_w);
+                        new_sym = vertcat(new_sym, v_sym);
                         new_lb = [new_lb; v_lb];
                         new_ub = [new_ub; v_ub];
                         new_init = [new_init; v_init];
 
-                        n = length(v_w);
-                        indices = (n_new_w+1):(n_new_w+n);
+                        n = length(v_sym);
+                        indices = (n_new_sym+1):(n_new_sym+n);
                         curr_for_dim_adj = num2cell(curr(1:dim)+1);
                         var.indices{curr_for_dim_adj{:}} = indices;
                     end
                 end
             end
-            obj.w = new_w;
+            sym = new_sym;
             obj.lb = new_lb;
             obj.ub = new_ub;
             obj.init = new_init;
@@ -347,7 +347,10 @@ classdef Vector < handle &...
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
             if ~isfield(obj.variables, name)
-                obj.variables.(name) = vdx.Variable(obj,[]); % TODO(@anton) rename this. Talk to Armin.
+                var = vdx.Variable(obj,[]);
+                obj.variables.(name) = var; % TODO(@anton) rename this. Talk to Armin.
+                P = obj.addprop(name);
+                obj.(name) = var;
             end
             varargout{1} = obj.variables.(index_op);
         end
@@ -359,7 +362,10 @@ classdef Vector < handle &...
             end
             name = index_op(1).Name;
             if ~isfield(obj.variables,name)
-                obj.variables.(name) = vdx.Variable(obj,[]);
+                var = vdx.Variable(obj,[]);
+                obj.variables.(name) = var; % TODO(@anton) rename this. Talk to Armin.
+                P = obj.addprop(name);
+                obj.(name) = var;
             end
             obj.variables.(index_op) = varargin{1};
         end
@@ -369,7 +375,7 @@ classdef Vector < handle &...
         end
 
         function varargout = parenReference(obj, index_op)
-            varargout{1} = obj.w.(index_op); % TODO(@anton) this should be sufficient to pass through
+            varargout{1} = sym.(index_op); % TODO(@anton) this should be sufficient to pass through
         end
 
         function obj = parenAssign(obj,index_op,varargin)
