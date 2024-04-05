@@ -50,7 +50,7 @@ classdef Vector < handle &...
             obj.default_ub = p.Results.ub;
             obj.default_init = p.Results.init;
 
-            sym = casadi.(p.Results.casadi_type);
+            obj.sym = casadi.(p.Results.casadi_type);
             obj.lb = [];
             obj.ub = [];
             obj.init = [];
@@ -77,7 +77,7 @@ classdef Vector < handle &...
                 if ischar(symbolic{1})
                     name = symbolic{1};
                     len = symbolic{2};
-                    symbolic = define_casadi_symbolic(class(sym), name, len);
+                    symbolic = define_casadi_symbolic(class(obj.sym), name, len);
                 end
             end
 
@@ -136,7 +136,7 @@ classdef Vector < handle &...
         end
 
         function varargout = size(obj,varargin)
-            varargout = size(sym, varargin{:});
+            varargout = size(obj.sym, varargin{:});
             %TODO(anton) needs to return correct values for varargin and perhaps other cases?
         end
 
@@ -199,7 +199,7 @@ classdef Vector < handle &...
             fprintf(header);
 
             % iterate over all requested values
-            n = size(sym, 1);
+            n = size(obj.sym, 1);
             output = [];
             for ii=1:n
                 pline = [num2str(ii) '\t\t'];
@@ -219,7 +219,7 @@ classdef Vector < handle &...
                     pline = [pline sprintf('%-8.5g\t', obj.mult(ii))];
                 end
                 if sym
-                    pline = [pline char(formattedDisplayText(sym(ii)))];
+                    pline = [pline char(formattedDisplayText(obj.sym(ii)))];
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
@@ -335,7 +335,7 @@ classdef Vector < handle &...
                     end
                 end
             end
-            sym = new_sym;
+            obj.sym = new_sym;
             obj.lb = new_lb;
             obj.ub = new_ub;
             obj.init = new_init;
@@ -375,7 +375,7 @@ classdef Vector < handle &...
         end
 
         function varargout = parenReference(obj, index_op)
-            varargout{1} = sym.(index_op); % TODO(@anton) this should be sufficient to pass through
+            varargout{1} = obj.sym.(index_op); % TODO(@anton) this should be sufficient to pass through
         end
 
         function obj = parenAssign(obj,index_op,varargin)
