@@ -309,12 +309,9 @@ classdef Vector < handle &...
                 mods = mod(ii-1,modlist);
                 mask = mods == 0;
                 dims_to_process = dims(mask);
-                %disp(dims_to_process)
-                %disp(curr)
                 for dim=dims_to_process
                     d_vars = vars_by_depth{dim+1};
                     curr_for_dim = num2cell(curr(1:dim));
-                    %disp(curr(1:dim))
                     for jj=1:numel(d_vars)
                         var = obj.variables.(d_vars{jj});
                         n_new_sym = length(new_sym);
@@ -347,10 +344,7 @@ classdef Vector < handle &...
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
             if ~isfield(obj.variables, name)
-                var = vdx.Variable(obj,[]);
-                obj.variables.(name) = var; % TODO(@anton) rename this. Talk to Armin.
-                P = obj.addprop(name);
-                obj.(name) = var;
+                error(['Variable ' name ' does not exist on this vector'])
             end
             varargout{1} = obj.variables.(index_op);
         end
@@ -361,6 +355,9 @@ classdef Vector < handle &...
                 matlab_bug_workaround_to_prevent_garbage_collection = varargin{1};
             end
             name = index_op(1).Name;
+            if isscalar(index_op)
+                error(['Assigning directly to variable ' name ' is not allowed. Include an index.'])
+            end
             if ~isfield(obj.variables,name)
                 var = vdx.Variable(obj,[]);
                 obj.variables.(name) = var; % TODO(@anton) rename this. Talk to Armin.
