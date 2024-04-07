@@ -3,27 +3,62 @@ classdef Vector < handle &...
         matlab.mixin.indexing.RedefinesParen &...
         dynamicprops &...
         matlab.mixin.Copyable
+% A class which provides a wrapper around CasADi symbolics and tracks the indicies of :class: vdx.Variable within it.
+%
+% :param vdx.Problem problem: Prablem which this vector is a variable of.
+% :param string casadi_type: either 'SX' (default) or 'MX' which determines the kind of CasADi symbolic stored.
     properties (Access=public)
-        % Symbolic vector that this wraps TODO(@anton) possibly rename?
+        % CasADi symbolic vector that is wrapped by this object.
+        %
+        %:type: casadi.SX|casadi.MX
         sym
-        % Numeric vectors containing lower and upper bounds and initial data
+
+        % Lower bound of vector.
+        %
+        %:type: double 
         lb
+
+        % Upper bound of vector.
+        %
+        %:type: double
         ub
+
+        % Initial value of vector.
+        % This is used to initialize the NLP solver in the case of primal and parameter vectors. Ignored in the case of constraint vectors.
+        %
+        %:type: double
         init
-        % Numeric vectors for results
+
+        % Results populated by the NLP solver.
+        % Ignored in the case of parameter vectors.
+        %
+        %:type: double
         res
+        
+        % Lagrange multipliers populated by the NLP solver.
+        % Also used to set initial multipliers passed to the NLP solver.
+        %
+        %:type: double
         mult
-        % Default values for bounds and init
+        
+        % Default lower bound set when no lower bound is provided in an assignment.
+        %
+        %:type: double
         default_lb
+        
+        % Default upper bound set when no upper bound is provided in an assignment.
+        %
+        %:type: double
         default_ub
+        
+        % Default initial value set when no initial value is provided in an assignment.
+        %
+        %:type: double
         default_init
     end
     properties (Access=private)
         % pointer to parent problem
-        % TODO(@anton) think about this and possibly provide functionality to move between problems. (low priority)
         problem
-        % casadi type
-        %casadi_type
         % Internal struct of index tracking variables
         variables struct
     end
@@ -55,80 +90,6 @@ classdef Vector < handle &...
             obj.ub = [];
             obj.init = [];
         end
-        
-        function indices = add_variable(obj, symbolic, varargin)
-        % ADD_VARIABLE  Adds a variable to the internal symbolic and numeric vectors.
-        %   TODO(@anton) Perhaps this should be private and renamed. (medium priority)
-            p = inputParser;
-            addRequired(p, 'obj');
-            addRequired(p, 'symbolic');
-            addOptional(p, 'lb', []);
-            addOptional(p, 'ub', []);
-            addOptional(p, 'initial', []);
-            parse(p, obj, symbolic, varargin{:});
-
-            symbolic = p.Results.symbolic;
-            lb = p.Results.lb;
-            ub = p.Results.ub;
-            initial = p.Results.initial;
-
-            % Handle non-symbolic input as (name, size) pair
-            if iscell(symbolic)
-                if ischar(symbolic{1})
-                    name = symbolic{1};
-                    len = symbolic{2};
-                    symbolic = define_casadi_symbolic(class(obj.sym), name, len);
-                end
-            end
-
-            % Get size and populate possibly empty values
-            n = size(symbolic, 1);
-            if isempty(lb)
-                lb = obj.default_lb*ones(n,1);
-            elseif length(lb) == 1
-                lb = lb*ones(n,1);
-            end
-            
-            if isempty(ub)
-                ub = obj.default_ub*ones(n,1);
-            elseif length(ub) == 1
-                ub = ub*ones(n,1);
-            end
-
-            if isempty(initial)
-                initial = obj.default_init*ones(n,1);
-            elseif length(initial) == 1
-                initial = initial*ones(n,1);
-            end
-            
-            lens = [size(symbolic,1),size(lb,1),size(ub,1), size(initial,1)];
-            if ~all(lens == lens(1))
-                % TODO(@anton) better error message
-                error("mismatched dims")
-            end
-
-            n_sym = size(obj.sym, 1);
-
-            obj.sym = vertcat(obj.sym, symbolic);
-            obj.lb = [obj.lb; lb];
-            obj.ub = [obj.ub; ub];
-            obj.init = [obj.init; initial];
-
-            % initialize results and multipliers to zero
-            % TODO(@anton) is there a better descision than this?
-            obj.res = [obj.res; zeros(n,1)];
-            obj.mult = [obj.mult; zeros(n,1)];
-
-            indices = (n_sym+1):(n_sym+n);
-        end
-
-        function add_variable_group(obj, name, vars, varargin)
-            if isfield(obj.variables,name)
-                error('Variable or VariableGroup with this name already exists')
-            else
-                obj.variables.(name) = vdx.VariableGroup(vars, varargin{:});
-            end
-        end
 
         function out = cat(dim,varargin)
             error('Concatenation not (yet) supported')
@@ -141,6 +102,10 @@ classdef Vector < handle &...
         end
 
         function print(obj, varargin)
+        % Pretty prints this vector with the specified columns.
+        %
+        % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
+        % Default prints all columns.
             sym = false;
             lb = false;
             ub = false;
@@ -228,9 +193,9 @@ classdef Vector < handle &...
         end
 
         function sort_by_index(obj)
-        % SORT_BY_INDEX Sorts this vector so that the vectors occur in column major order with lower dimensional variables
-        %               always occuring before higher dimensional variables. This can be useful to recover any structure in the 
-        %               problem that comes from the structure of constaraints and variables.
+        % Sorts this vector so that the vectors occur in column major order with lower dimensional :class: vdx.Variable
+        % always occuring before higher dimensional :class: vdx.Variable. This can be useful to recover any sparsity structure in the 
+        % problem that comes from the structure of constaraints and variables.
             vars = fieldnames(obj.variables);
             % get depth
             lengths = 1;
@@ -340,7 +305,6 @@ classdef Vector < handle &...
     end
     
     methods (Access=protected)
-        % Dot reference overrides
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
             if ~isfield(obj.variables, name)
@@ -359,7 +323,7 @@ classdef Vector < handle &...
                 error(['Assigning directly to variable ' name ' is not allowed. Include an index.'])
             end
             if ~isfield(obj.variables,name)
-                var = vdx.Variable(obj,[]);
+                var = vdx.Variable(obj);
                 obj.variables.(name) = var; % TODO(@anton) rename this. Talk to Armin.
                 P = obj.addprop(name);
                 obj.(name) = var;
@@ -399,6 +363,82 @@ classdef Vector < handle &...
                 cp.variables.(var_names{ii}).vector = cp;
                 % Solver needs to be cleared.
                 cp.variables.(var_names{ii}).solver = [];
+            end
+        end
+    end
+
+    methods (Access={vdx.Variable})
+        function indices = add_variable(obj, symbolic, varargin)
+        % Adds a :class: vdx.Variable to the internal symbolic and numeric vectors.
+            p = inputParser;
+            addRequired(p, 'obj');
+            addRequired(p, 'symbolic');
+            addOptional(p, 'lb', []);
+            addOptional(p, 'ub', []);
+            addOptional(p, 'initial', []);
+            parse(p, obj, symbolic, varargin{:});
+
+            symbolic = p.Results.symbolic;
+            lb = p.Results.lb;
+            ub = p.Results.ub;
+            initial = p.Results.initial;
+
+            % Handle non-symbolic input as (name, size) pair
+            if iscell(symbolic)
+                if ischar(symbolic{1})
+                    name = symbolic{1};
+                    len = symbolic{2};
+                    symbolic = define_casadi_symbolic(class(obj.sym), name, len);
+                end
+            end
+
+            % Get size and populate possibly empty values
+            n = size(symbolic, 1);
+            if isempty(lb)
+                lb = obj.default_lb*ones(n,1);
+            elseif length(lb) == 1
+                lb = lb*ones(n,1);
+            end
+            
+            if isempty(ub)
+                ub = obj.default_ub*ones(n,1);
+            elseif length(ub) == 1
+                ub = ub*ones(n,1);
+            end
+
+            if isempty(initial)
+                initial = obj.default_init*ones(n,1);
+            elseif length(initial) == 1
+                initial = initial*ones(n,1);
+            end
+            
+            lens = [size(symbolic,1),size(lb,1),size(ub,1), size(initial,1)];
+            if ~all(lens == lens(1))
+                % TODO(@anton) better error message
+                error("mismatched dims")
+            end
+
+            n_sym = size(obj.sym, 1);
+
+            obj.sym = vertcat(obj.sym, symbolic);
+            obj.lb = [obj.lb; lb];
+            obj.ub = [obj.ub; ub];
+            obj.init = [obj.init; initial];
+
+            % initialize results and multipliers to zero
+            % TODO(@anton) is there a better descision than this?
+            obj.res = [obj.res; zeros(n,1)];
+            obj.mult = [obj.mult; zeros(n,1)];
+
+            indices = (n_sym+1):(n_sym+n);
+        end
+
+        function add_variable_group(obj, name, vars, varargin)
+        % Adds a :class: vdx.VariableGroup to this vector
+            if isfield(obj.variables,name)
+                error('Variable or VariableGroup with this name already exists')
+            else
+                obj.variables.(name) = vdx.VariableGroup(vars, varargin{:});
             end
         end
     end

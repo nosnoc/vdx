@@ -1,5 +1,7 @@
 # Configuration file for the Sphinx documentation builder.
 
+import os
+
 # -- Project information
 
 project = 'VDX'
@@ -35,10 +37,8 @@ html_theme = 'sphinx_rtd_theme'
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
 
-import os
 matlab_src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-print(matlab_src_dir)
-print(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 matlab_short_links = True
 matlab_auto_link = "basic"
 primary_domain = "mat"
+autodoc_member_order = 'bysource'

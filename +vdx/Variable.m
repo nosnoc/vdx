@@ -2,23 +2,44 @@ classdef Variable < handle &...
         matlab.mixin.indexing.RedefinesParen &...
         matlab.mixin.Copyable
     properties
+        % Indices of this :class: vdx.Variable in its :class: vdx.Vector.
         %
+        %:type: cell
         indices
 
-        %
+        % :class: vdx.Vector that this :class: vdx.Variable is a member of.
         vector
-
-        %
-        solver
     end
 
     properties (Dependent)
+        % Horizonally concatenated vectors of all lower bounds of this :class: vdx.Variable.
+        %
+        %:type: double
         lb
+
+        % Horizonally concatenated vectors of all upper bounds of this :class: vdx.Variable.
+        %
+        %:type: double
         ub
+
+        % Horizonally concatenated vectors of all initial values of this :class: vdx.Variable.
+        %
+        %:type: double
         init
+
+        % Horizonally concatenated vectors of all results of this :class: vdx.Variable.
+        %
+        %:type: double
         res
+
+        % Horizonally concatenated vectors of all Lagrange multipliers of this :class: vdx.Variable.
+        %
+        %:type: double
         mult
 
+        % Number of indices supported by this variable.
+        %
+        %:type: double
         depth
     end
     
@@ -56,10 +77,9 @@ classdef Variable < handle &...
     end
 
     methods(Access=public)
-        function obj = Variable(vector, solver)
+        function obj = Variable(vector)
             obj.indices = cell(0,1);
             obj.vector = vector;
-            obj.solver = obj.solver;
         end
         
         function out = cat(dim,varargin)
@@ -77,6 +97,10 @@ classdef Variable < handle &...
         end
         
         function output = print(obj, varargin)
+        % Pretty prints this variable with the specified columns.
+        %
+        % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
+        % Default prints all columns.
             sym = false;
             lb = false;
             ub = false;
@@ -325,7 +349,6 @@ classdef Variable < handle &...
             cp = copyElement@matlab.mixin.Copyable(obj);
 
             cp.vector = [];
-            cp.solver = [];
         end
     end
 
