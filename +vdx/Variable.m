@@ -2,37 +2,37 @@ classdef Variable < handle &...
         matlab.mixin.indexing.RedefinesParen &...
         matlab.mixin.Copyable
     properties
-        % Indices of this :class: vdx.Variable in its :class: vdx.Vector.
+        % Indices of this :class:`vdx.Variable` in its :class:vdx.Vector.
         %
         %:type: cell
         indices
 
-        % :class: vdx.Vector that this :class: vdx.Variable is a member of.
+        % :class:`vdx.Vector` that this :class:`vdx.Variable` is a member of.
         vector
     end
 
     properties (Dependent)
-        % Horizonally concatenated vectors of all lower bounds of this :class: vdx.Variable.
+        % Horizonally concatenated vectors of all lower bounds of this :class:`vdx.Variable`.
         %
         %:type: double
         lb
 
-        % Horizonally concatenated vectors of all upper bounds of this :class: vdx.Variable.
+        % Horizonally concatenated vectors of all upper bounds of this :class:`vdx.Variable`.
         %
         %:type: double
         ub
 
-        % Horizonally concatenated vectors of all initial values of this :class: vdx.Variable.
+        % Horizonally concatenated vectors of all initial values of this :class:`vdx.Variable`.
         %
         %:type: double
         init
 
-        % Horizonally concatenated vectors of all results of this :class: vdx.Variable.
+        % Horizonally concatenated vectors of all results of this :class:`vdx.Variable`.
         %
         %:type: double
         res
 
-        % Horizonally concatenated vectors of all Lagrange multipliers of this :class: vdx.Variable.
+        % Horizonally concatenated vectors of all Lagrange multipliers of this :class:`vdx.Variable`.
         %
         %:type: double
         mult

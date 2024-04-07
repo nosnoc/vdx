@@ -3,9 +3,9 @@ classdef Vector < handle &...
         matlab.mixin.indexing.RedefinesParen &...
         dynamicprops &...
         matlab.mixin.Copyable
-% A class which provides a wrapper around CasADi symbolics and tracks the indicies of :class: vdx.Variable within it.
+% A class which provides a wrapper around CasADi symbolics and tracks the indicies of :class:`vdx.Variable` within it.
 %
-% :param vdx.Problem problem: Prablem which this vector is a variable of.
+% :param vdx.Problem problem: Problem which this vector is a member of.
 % :param string casadi_type: either 'SX' (default) or 'MX' which determines the kind of CasADi symbolic stored.
     properties (Access=public)
         % CasADi symbolic vector that is wrapped by this object.
@@ -193,8 +193,8 @@ classdef Vector < handle &...
         end
 
         function sort_by_index(obj)
-        % Sorts this vector so that the vectors occur in column major order with lower dimensional :class: vdx.Variable
-        % always occuring before higher dimensional :class: vdx.Variable. This can be useful to recover any sparsity structure in the 
+        % Sorts this vector so that the vectors occur in column major order with lower dimensional :class:`vdx.Variable`
+        % always occuring before higher dimensional :class:`vdx.Variable`. This can be useful to recover any sparsity structure in the 
         % problem that comes from the structure of constaraints and variables.
             vars = fieldnames(obj.variables);
             % get depth
@@ -369,7 +369,7 @@ classdef Vector < handle &...
 
     methods (Access={vdx.Variable})
         function indices = add_variable(obj, symbolic, varargin)
-        % Adds a :class: vdx.Variable to the internal symbolic and numeric vectors.
+        % Adds a :class:`vdx.Variable` to the internal symbolic and numeric vectors.
             p = inputParser;
             addRequired(p, 'obj');
             addRequired(p, 'symbolic');
@@ -434,7 +434,7 @@ classdef Vector < handle &...
         end
 
         function add_variable_group(obj, name, vars, varargin)
-        % Adds a :class: vdx.VariableGroup to this vector
+        % Adds a :class:`vdx.VariableGroup` to this vector
             if isfield(obj.variables,name)
                 error('Variable or VariableGroup with this name already exists')
             else
