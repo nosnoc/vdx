@@ -43,7 +43,7 @@ prob = vdx.Problem('casadi_type', 'MX');
 prob.w.x(0) = {{'X_0', 2},[0;1], [0;1], [0;1]};
 prob.w.x(1:N) = {{'X', 2}, [-0.25;-inf], [inf;inf], [0;0]};
 prob.w.u(1:N) = {{'U', 1},-1,1,0};
-prob.w.add_variable_group('stage_vars',["x", "u"])
+prob.w.add_variable_group('stage_vars',{prob.w.x, prob.w.u})
 Xk = prob.w.x(0);
 % Formulate the NLP
 for k=1:N

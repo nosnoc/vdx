@@ -302,6 +302,15 @@ classdef Vector < handle &...
             obj.ub = new_ub;
             obj.init = new_init;
         end
+
+        function add_variable_group(obj, name, vars, varargin)
+            % Adds a :class:`vdx.VariableGroup` to this vector
+            if isfield(obj.variables,name)
+                error('Variable or VariableGroup with this name already exists')
+            else
+                obj.variables.(name) = vdx.VariableGroup(vars, varargin{:});
+            end
+        end
     end
     
     methods (Access=protected)
@@ -431,15 +440,6 @@ classdef Vector < handle &...
             obj.mult = [obj.mult; zeros(n,1)];
 
             indices = (n_sym+1):(n_sym+n);
-        end
-
-        function add_variable_group(obj, name, vars, varargin)
-        % Adds a :class:`vdx.VariableGroup` to this vector
-            if isfield(obj.variables,name)
-                error('Variable or VariableGroup with this name already exists')
-            else
-                obj.variables.(name) = vdx.VariableGroup(vars, varargin{:});
-            end
         end
     end
 end
