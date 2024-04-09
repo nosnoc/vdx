@@ -57,7 +57,7 @@ classdef VariableGroup < handle &...
                     depth = var.depth;
                     index_rule = obj.index_rules{ii};
                     adj_ind = index_rule(index_op.Indices, var);
-                    vsymbolics = cellfun(@(x) var.vector.w(x), var.indices(adj_ind{1:depth},1), 'uni', false);
+                    vsymbolics = cellfun(@(x) var.vector.sym(x), var.indices(adj_ind{1:depth},1), 'uni', false);
                     symbolics = [symbolics;vsymbolics{:}];
                 end
                 out = squeeze(symbolics);
@@ -147,7 +147,7 @@ classdef VariableGroup < handle &...
                     depth = var.depth;
                     index_rule = obj.index_rules{ii};
                     adj_ind = index_rule(index_op.Indices(1:depth), var);
-                    vsymbolics = cellfun(@(x) var.vector.w(x), var.indices(adj_ind{:},1), 'uni', false);
+                    vsymbolics = cellfun(@(x) var.vector.sym(x), var.indices(adj_ind{:},1), 'uni', false);
                     symbolics = [symbolics;vsymbolics];
                 end
                 out = squeeze(symbolics);

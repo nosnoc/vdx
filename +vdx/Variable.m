@@ -243,7 +243,7 @@ classdef Variable < handle &...
                     symbolic = arg{1}; % TODO this living here implies we should move other handeling out of 'add_variable'
                     if iscell(symbolic) && isa(symbolic{1}, 'casadi.Function')
                         varargs = symbolic(3:end);
-                        arg_group = vdx.VariableGroup(symbolic{2}, varargs{:});
+                        arg_group = vdx.VariableGroup(symbolic{2}, varargs);
                         fun = symbolic{1};
                         fargs = arg_group{index_op(1).Indices{:}};
                         symbolic = fun(fargs{:});
