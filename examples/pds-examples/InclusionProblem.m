@@ -226,8 +226,8 @@ classdef InclusionProblem < vdx.Problem
                     end
                 end
             end
-            obj.G_fun = Function('G_fun',{obj.w.w},{G});
-            obj.H_fun = Function('H_fun',{obj.w.w},{H});
+            obj.G_fun = Function('G_fun',{obj.w.sym},{G});
+            obj.H_fun = Function('H_fun',{obj.w.sym},{H});
 
             
             eta_vec = [];
@@ -256,7 +256,7 @@ classdef InclusionProblem < vdx.Problem
                     eta_vec = [eta_vec;eta];
                 end
             end
-            obj.eta_fun = Function('eta_fun', {obj.w.w}, {eta_vec});
+            obj.eta_fun = Function('eta_fun', {obj.w.sym}, {eta_vec});
             switch obj.opts.step_eq
               case 'heuristic_mean'
                 for ii=1:obj.data.N_stages
@@ -293,7 +293,7 @@ classdef InclusionProblem < vdx.Problem
                         obj.g.step_equilibration(ii,jj) = {eta*delta_h, 0, 0};
                     end
                 end
-                obj.eta_fun = Function('eta_fun', {obj.w.w}, {eta_vec});
+                obj.eta_fun = Function('eta_fun', {obj.w.sym}, {eta_vec});
               case 'direct_homotopy'
                 eta_vec = [];
                 for ii=1:obj.data.N_stages
@@ -325,7 +325,7 @@ classdef InclusionProblem < vdx.Problem
                         obj.g.step_equilibration(ii,jj) = {homotopy_eq, [-inf;0], [0;inf]};
                     end
                 end
-                obj.eta_fun = Function('eta_fun', {obj.w.w}, {eta_vec});
+                obj.eta_fun = Function('eta_fun', {obj.w.sym}, {eta_vec});
               case 'direct_homotopy_with_penalty'
                 eta_vec = [];
                 for ii=1:obj.data.N_stages
@@ -357,7 +357,7 @@ classdef InclusionProblem < vdx.Problem
                         obj.g.step_equilibration(ii,jj) = {homotopy_eq, [-inf;0], [0;inf]};
                     end
                 end
-                obj.eta_fun = Function('eta_fun', {obj.w.w}, {eta_vec});
+                obj.eta_fun = Function('eta_fun', {obj.w.sym}, {eta_vec});
                 for ii=1:obj.data.N_stages
                     for jj=1:obj.data.N_fe
                         obj.f = obj.f + obj.p.gamma_h(0)*(h0-obj.w.h(ii,jj))^2;
@@ -546,7 +546,7 @@ classdef InclusionProblem < vdx.Problem
                 obj.f = obj.p.sigma(0)*obj.f + obj.w.s_elastic(0);
             end
 
-            obj.comp_res_fun = Function('comp_res', {obj.w.w, obj.p.w}, {max(G.*H)});
+            obj.comp_res_fun = Function('comp_res', {obj.w.sym, obj.p.sym}, {max(G.*H)});
         end
 
         % function stats = solve(obj)

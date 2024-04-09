@@ -367,7 +367,7 @@ classdef Vector < handle &...
         end
     end
 
-    methods (Access={vdx.Variable})
+    methods (Access={?vdx.Variable})
         function indices = add_variable(obj, symbolic, varargin)
         % Adds a :class:`vdx.Variable` to the internal symbolic and numeric vectors.
             p = inputParser;
