@@ -11,83 +11,67 @@ classdef Vector < handle &...
         %
         %:type: casadi.SX|casadi.MX
         sym
-
-        % Lower bound of vector.
-        %
-        %:type: double 
-        lb (:,1) double
-
-        % Upper bound of vector.
-        %
-        %:type: double
-        ub (:,1) double
-
-        % Initial value of vector.
-        % This is used to initialize the NLP solver in the case of primal and parameter vectors. Ignored in the case of constraint vectors.
-        %
-        %:type: double
-        init (:,1) double
-
-        % Results populated by the NLP solver.
-        % Ignored in the case of parameter vectors.
-        %
-        %:type: double
-        res (:,1) double
-        
-        % Lagrange multipliers populated by the NLP solver.
-        % Also used to set initial multipliers passed to the NLP solver.
-        %
-        %:type: double
-        mult (:,1) double
-        
-        % Default lower bound set when no lower bound is provided in an assignment.
-        %
-        %:type: double
-        default_lb (1,1) double
-        
-        % Default upper bound set when no upper bound is provided in an assignment.
-        %
-        %:type: double
-        default_ub (1,1) double
-        
-        % Default initial value set when no initial value is provided in an assignment.
-        %
-        %:type: double
-        default_init (1,1) double
     end
+    
     properties (Access=private)
         % pointer to parent problem
         problem
+
         % Internal struct of index tracking variables
         variables struct
     end
 
-    properties (Dependent)
-        
+    properties (Access=protected)
+         % internal struct of numerical data associated with this
+        numerical_vectors struct
+    end
+    
+    properties (Access=protected, Abstract)
+        % default values for numerical vectors
+        numerical_defaults
+    end
+
+    properties (Constant, Abstract, Hidden)
+        numerical_properties
+        numerical_outputs
+        allow_nonscalar_symbolics
+        allow_non_symbolic_assignment
     end
 
     methods (Access=public)
         function obj = Vector(problem, varargin)
             p = inputParser;
             addRequired(p, 'problem');
-            addOptional(p, 'lb', -inf);
-            addOptional(p, 'ub', inf);
-            addOptional(p, 'init', 0);
+            for name=obj.numerical_properties
+                if isfield(obj.numerical_defaults, name)
+                    default = obj.numerical_defaults.(name)
+                else
+                    default = 0;
+                end
+                addParameter(p, ['default_' char(name)], default);
+            end
             addParameter(p, 'casadi_type', 'SX');
             parse(p, problem, varargin{:});
-            
+
+            % Populate core functionality
+            obj.sym = casadi.(p.Results.casadi_type);
             obj.problem = problem;
             obj.variables = struct;
+            obj.numerical_vectors = struct;
+            
 
             % Populate defaults
-            obj.default_lb = p.Results.lb;
-            obj.default_ub = p.Results.ub;
-            obj.default_init = p.Results.init;
+            for name=obj.numerical_properties
+                obj.numerical_defaults.(name) = p.Results.(['default_' char(name)]);
+            end
 
-            obj.sym = casadi.(p.Results.casadi_type);
-            obj.lb = [];
-            obj.ub = [];
-            obj.init = [];
+            % Populate vectors
+            for name=obj.numerical_properties
+                obj.numerical_defaults.(name) = [];
+            end
+            for name=obj.numerical_outputs
+                obj.numerical_defaults.(name) = [];
+            end
         end
 
         function print(obj, varargin)
@@ -386,16 +370,21 @@ classdef Vector < handle &...
             p = inputParser;
             addRequired(p, 'obj');
             addRequired(p, 'symbolic');
-            addOptional(p, 'lb', []);
-            addOptional(p, 'ub', []);
-            addOptional(p, 'initial', []);
+            for name=obj.numerical_properties
+                default = obj.numerical_defaults.(name)
+                addParameter(p, name, default);
+            end
             parse(p, obj, symbolic, varargin{:});
 
             symbolic = p.Results.symbolic;
-            lb = p.Results.lb;
-            ub = p.Results.ub;
-            initial = p.Results.initial;
 
+            % Check that symbolic is valid
+            if iscell(symbolic) && ~isa(symbolic{1}, 'casadi.Function') && ~obj.allow_nonsymbolic_assignment
+                % TODO better error
+                error('This vector of class ' class(obj) ' does not allow for {name, size} form of assignment.')
+            end
+            % TODO more checks here
+            
             % Handle non-symbolic input as (name, size) pair
             if iscell(symbolic)
                 if ischar(symbolic{1})
@@ -444,6 +433,12 @@ classdef Vector < handle &...
             obj.mult = [obj.mult; zeros(n,1)];
 
             indices = (n_sym+1):(n_sym+n);
+        end
+    end
+
+    methods (Access=private)
+        function sym = eval_symbolic(sym, indices)
+        % process sym into a casadi symbolic possibly renaming using indices in the process
         end
     end
 end
