@@ -1,4 +1,5 @@
 function X = all_combinations(varargin)
+
     numSets = length(varargin);
     for i = 1:numSets,
         thisSet = sort(varargin{i});

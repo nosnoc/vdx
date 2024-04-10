@@ -15,45 +15,45 @@ classdef Vector < handle &...
         % Lower bound of vector.
         %
         %:type: double 
-        lb
+        lb (:,1) double
 
         % Upper bound of vector.
         %
         %:type: double
-        ub
+        ub (:,1) double
 
         % Initial value of vector.
         % This is used to initialize the NLP solver in the case of primal and parameter vectors. Ignored in the case of constraint vectors.
         %
         %:type: double
-        init
+        init (:,1) double
 
         % Results populated by the NLP solver.
         % Ignored in the case of parameter vectors.
         %
         %:type: double
-        res
+        res (:,1) double
         
         % Lagrange multipliers populated by the NLP solver.
         % Also used to set initial multipliers passed to the NLP solver.
         %
         %:type: double
-        mult
+        mult (:,1) double
         
         % Default lower bound set when no lower bound is provided in an assignment.
         %
         %:type: double
-        default_lb
+        default_lb (1,1) double
         
         % Default upper bound set when no upper bound is provided in an assignment.
         %
         %:type: double
-        default_ub
+        default_ub (1,1) double
         
         % Default initial value set when no initial value is provided in an assignment.
         %
         %:type: double
-        default_init
+        default_init (1,1) double
     end
     properties (Access=private)
         % pointer to parent problem
@@ -333,13 +333,25 @@ classdef Vector < handle &...
             end
             name = index_op(1).Name;
             if isscalar(index_op)
-                err.message = sprintf(['Assigning directly to variable ' char(name) ' is not allowed. Include an index.\n'...
-                    'If you want to track a scalar variable (with no subscripts you can index via: ' char(name) '()']);
-                err.identifier = 'vdx:indexing:assign_to_scalar';
-                stack = dbstack('-completenames');
-                stack(1).name = 'Vector.assignment';
-                err.stack = stack;
-                error(err);
+                if ~isfield(obj.variables,name) % Workaround for scalar variables because matlab throws a fit if you try x() = 1;
+                    var = vdx.Variable(obj);
+                    obj.variables.(name) = var;
+                    P = obj.addprop(name);
+                    obj.(name) = var;
+                    var(vdx.constants.scalar{:}) = varargin{1};
+                    return
+                elseif obj.variables.(indexop(1)).depth == 0; % TODO maybe this should also error.
+                    var = obj.variables.(indexop(1));
+                    var(vdx.constants.scalar{:}) = varargin{1};
+                else
+                    err.message = sprintf(['Assigning directly to variable ' char(name) ' is not allowed. Include an index.\n'...
+                                            'If you want to track a scalar variable (with no subscripts you can index via: ' char(name) '()']);
+                    err.identifier = 'vdx:indexing:assign_to_scalar';
+                    stack = dbstack('-completenames');
+                    stack(1).name = 'Vector.assignment';
+                    err.stack = stack;
+                    error(err);
+                end
             end
             if ~isfield(obj.variables,name)
                 var = vdx.Variable(obj);

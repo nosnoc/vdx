@@ -78,7 +78,7 @@ function [result, prob] = qp_solver(Q,c,A,b,x0)
         prob.w.x(0,0,data.n_s).init = x_curr;
         prob.w.x(0,0,data.n_s).lb = x_curr;
         prob.w.x(0,0,data.n_s).ub = x_curr;
-        prob.p.T(1).init = T_curr;
+        prob.p.T().init = T_curr;
         for ii=1:data.N_fe
             prob.w.h(1,ii).ub = 2*(T_curr/data.N_fe);
         end
