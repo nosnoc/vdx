@@ -9,17 +9,17 @@ classdef Problem < handle &...
         % Primal variabiles
         %
         %:type: vdx.Vector
-        w
+        w vdx.Vector
         
         % Constraints
         %
         %:type: vdx.Vector
-        g
+        g vdx.Vector
         
         % Parameters
         %
         %:type: vdx.Vector
-        p
+        p vdx.Vector
         
         % Objective
         %
@@ -29,12 +29,12 @@ classdef Problem < handle &...
         % Objective value
         %
         %:type: double
-        f_result
+        f_result (1,1) double
 
         % Solver name
         %
         %:type: char
-        solver_name
+        solver_name (1,:) char
     end
     properties (Access=public, NonCopyable)
         % CasADi `nlpsol` object for the given problem.
@@ -63,16 +63,11 @@ classdef Problem < handle &...
         %
         %:param struct casadi_options: Options passed to `casadi.nlpsol` TODO(@anton) link to CasADi docs here.
         %:param char plugin: `casadi.nlpsol` plugin to use.
-            w = obj.w(:);
-            g = obj.g(:);
-            p = obj.p(:);
-            f = obj.f;
-
             if ~exist('plugin')
                 plugin = 'ipopt';
             end
 
-            casadi_nlp = struct('x', w, 'g', g, 'p', p, 'f', f);
+            casadi_nlp = obj.to_casadi_struct();
             obj.solver = casadi.nlpsol(obj.solver_name, plugin, casadi_nlp, casadi_options);
         end
 

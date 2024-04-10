@@ -40,10 +40,11 @@ dyn = Function('dyn', {X1, X0, U, P}, {X-X1});
 qf = Function('qf', {X0, U, P}, {Q});
 g_path = Function('g_path', {x}, {x1+x2+2});
 
+warning off vdx:indexing:dot_reference_returns_vdx_var % Turn off warnings for advanced features of vdx.
 % create a problem
 prob = vdx.Problem('casadi_type', 'MX');
 
-prob.p.p(0) = {P, -inf, inf, 1};
+prob.p.p = {P, -inf, inf, 1};
 prob.w.x(0) = {{'X_0', 2},[0;1], [0;1], [0;1]};
 prob.w.x(1:N) = {{'X', 2}, [-0.25;-inf], [inf;inf], [0;0]};
 prob.w.u(1:N) = {{'U', 1},-1,1,0};
@@ -87,3 +88,5 @@ plot(tgrid, x_res(2,:), '-')
 stairs(tgrid, [u_res,nan], '-.')
 xlabel('t')
 legend('x1','x2','u')
+
+warning on vdx:indexing:dot_reference_returns_vdx_var % Turn back on warnings for advanced features of vdx.

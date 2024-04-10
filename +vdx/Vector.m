@@ -1,6 +1,5 @@
 classdef Vector < handle &...
         matlab.mixin.indexing.RedefinesDot &...
-        matlab.mixin.indexing.RedefinesParen &...
         dynamicprops &...
         matlab.mixin.Copyable
 % A class which provides a wrapper around CasADi symbolics and tracks the indicies of :class:`vdx.Variable` within it.
@@ -16,45 +15,45 @@ classdef Vector < handle &...
         % Lower bound of vector.
         %
         %:type: double 
-        lb
+        lb (:,1) double
 
         % Upper bound of vector.
         %
         %:type: double
-        ub
+        ub (:,1) double
 
         % Initial value of vector.
         % This is used to initialize the NLP solver in the case of primal and parameter vectors. Ignored in the case of constraint vectors.
         %
         %:type: double
-        init
+        init (:,1) double
 
         % Results populated by the NLP solver.
         % Ignored in the case of parameter vectors.
         %
         %:type: double
-        res
+        res (:,1) double
         
         % Lagrange multipliers populated by the NLP solver.
         % Also used to set initial multipliers passed to the NLP solver.
         %
         %:type: double
-        mult
+        mult (:,1) double
         
         % Default lower bound set when no lower bound is provided in an assignment.
         %
         %:type: double
-        default_lb
+        default_lb (1,1) double
         
         % Default upper bound set when no upper bound is provided in an assignment.
         %
         %:type: double
-        default_ub
+        default_ub (1,1) double
         
         % Default initial value set when no initial value is provided in an assignment.
         %
         %:type: double
-        default_init
+        default_init (1,1) double
     end
     properties (Access=private)
         % pointer to parent problem
@@ -89,16 +88,6 @@ classdef Vector < handle &...
             obj.lb = [];
             obj.ub = [];
             obj.init = [];
-        end
-
-        function out = cat(dim,varargin)
-            error('Concatenation not (yet) supported')
-            % TODO(@anton) This is certainly possible but will take some work 
-        end
-
-        function varargout = size(obj,varargin)
-            varargout = size(obj.sym, varargin{:});
-            %TODO(anton) needs to return correct values for varargin and perhaps other cases?
         end
 
         function print(obj, varargin)
@@ -317,7 +306,22 @@ classdef Vector < handle &...
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
             if ~isfield(obj.variables, name)
-                error(['Variable ' char(name) ' does not exist on this vector'])
+                err.message = sprintf(['Variable ' char(name) ' does not exist on this vector']);
+                err.identifier = 'vdx:indexing:assign_to_scalar';
+                stack = dbstack('-completenames');
+                stack(1).name = 'Vector.reference';
+                err.stack = stack(1:end);
+                error(err);
+                error([])
+            end
+            if isscalar(index_op)
+                warning('on', 'verbose')
+                warning('on', 'backtrace')
+                warning('vdx:indexing:dot_reference_returns_vdx_var',...
+                    sprintf(['You have accessed vdx.Variable ' char(name) ' directly.\n'...
+                              'In many cases this is a mistake unless you are using advanced indexing features of vdx.']));
+                warning('off', 'backtrace')
+                warning('off', 'verbose')
             end
             varargout{1} = obj.variables.(index_op);
         end
@@ -329,11 +333,29 @@ classdef Vector < handle &...
             end
             name = index_op(1).Name;
             if isscalar(index_op)
-                error(['Assigning directly to variable ' name ' is not allowed. Include an index.'])
+                if ~isfield(obj.variables,name) % Workaround for scalar variables because matlab throws a fit if you try x() = 1;
+                    var = vdx.Variable(obj);
+                    obj.variables.(name) = var;
+                    P = obj.addprop(name);
+                    obj.(name) = var;
+                    var(vdx.constants.scalar{:}) = varargin{1};
+                    return
+                elseif obj.variables.(indexop(1)).depth == 0; % TODO maybe this should also error.
+                    var = obj.variables.(indexop(1));
+                    var(vdx.constants.scalar{:}) = varargin{1};
+                else
+                    err.message = sprintf(['Assigning directly to variable ' char(name) ' is not allowed. Include an index.\n'...
+                                            'If you want to track a scalar variable (with no subscripts you can index via: ' char(name) '()']);
+                    err.identifier = 'vdx:indexing:assign_to_scalar';
+                    stack = dbstack('-completenames');
+                    stack(1).name = 'Vector.assignment';
+                    err.stack = stack;
+                    error(err);
+                end
             end
             if ~isfield(obj.variables,name)
                 var = vdx.Variable(obj);
-                obj.variables.(name) = var; % TODO(@anton) rename this. Talk to Armin.
+                obj.variables.(name) = var;
                 P = obj.addprop(name);
                 obj.(name) = var;
             end
@@ -342,24 +364,6 @@ classdef Vector < handle &...
         
         function n = dotListLength(obj,index_op,indexContext)
             n=1;
-        end
-
-        function varargout = parenReference(obj, index_op)
-            varargout{1} = obj.sym.(index_op); % TODO(@anton) this should be sufficient to pass through
-        end
-
-        function obj = parenAssign(obj,index_op,varargin)
-            error("Raw parenAssign is likely an error.")
-            % TODO(@anton) is it?
-        end
-
-        function obj = parenDelete(obj,index_op)
-            error('Raw parenDelete is unsupported')
-            % TODO(@anton) is it?
-        end
-
-        function n = parenListLength(obj,index_op,ctx)
-           n = 1;
         end
 
         function cp = copyElement(obj)

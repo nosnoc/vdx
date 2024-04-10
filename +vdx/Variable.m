@@ -36,11 +36,13 @@ classdef Variable < handle &...
         %
         %:type: double
         mult
+    end
 
+    properties (SetAccess=private)
         % Number of indices supported by this variable.
         %
         %:type: double
-        depth
+        depth = []
     end
     
     methods
@@ -68,11 +70,6 @@ classdef Variable < handle &...
             out = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
             out = permute(out, ndims(out):-1:1);
             out = [out{:}];
-        end
-
-        function out = get.depth(obj)
-            sz = size(obj.indices);
-            out = sum(sz > 1);
         end
     end
 
@@ -189,34 +186,52 @@ classdef Variable < handle &...
 
     methods (Access=protected)
         function varargout = parenReference(obj, index_op)
+            if obj.depth ~= length(index_op(1).Indices)
+                err.message = sprintf(['You are subscripting a variable using ' num2str(length(index_op(1).Indices)) ' subscripts but this variable expects ' num2str(obj.depth) ' subscripts.']);
+                err.identifier = 'vdx:indexing:incorrect_num_of_subscripts';
+                stack = dbstack('-completenames');
+                stack(1).name = 'Variable.reference';
+                err.stack = stack;
+                error(err);
+            end
+            if ~all_indices_integral(index_op(1).Indices)
+                err.message = sprintf(['Variable subscripts must be integral.']);
+                err.identifier = 'vdx:indexing:non_integral_subscripts';
+                stack = dbstack('-completenames');
+                stack(1).name = 'Variable.reference';
+                err.stack = stack;
+                error(err);
+            end
+            adj_ind = vdx.indexing.identity(index_op(1).Indices, obj);
+            unacceptable_indices = obj.unacceptable_indices(adj_ind);
+            if ~isempty(unacceptable_indices)
+                err.message = sprintf(['Subscript in position(s) [' num2str(unacceptable_indices) '] exceed(s) maximum subscripts']);
+                err.identifier = 'vdx:indexing:non_integral_subscripts';
+                stack = dbstack('-completenames');
+                stack(1).name = 'Variable.reference';
+                err.stack = stack;
+                error(err);
+            end
             if isscalar(index_op)
-                % TODO(@anton) Decide whether we squeeze, or concatenate with sorted indices.
-                %              This is in my opinion purely a decision that should be made and stuck to.
-                adj_ind = vdx.indexing.identity(index_op.Indices, obj);
-                symbolics = cellfun(@(x) obj.vector.sym(x), obj.indices(adj_ind{:}), 'uni', false);
-                out = squeeze(symbolics);
+                symbolics = cellfun(@(x) obj.vector.sym(x), obj.indices, 'uni', false);
+                out = squeeze(symbolics(adj_ind{:}));
             else
                 if index_op(2).Type == 'Dot'
                     switch(index_op(2).Name)
                       case "lb"
                         lb = cellfun(@(x) obj.vector.lb(x), obj.indices, 'uni', false);
-                        adj_ind = index_adjustment(index_op(1).Indices);
                         out = squeeze(lb(adj_ind{:}));
                       case "ub"
                         ub = cellfun(@(x) obj.vector.ub(x), obj.indices, 'uni', false);
-                        adj_ind = index_adjustment(index_op(1).Indices);
                         out = squeeze(ub(adj_ind{:}));
                       case "init"
                         init = cellfun(@(x) obj.vector.init(x), obj.indices, 'uni', false);
-                        adj_ind = index_adjustment(index_op(1).Indices);
                         out = squeeze(init(adj_ind{:}));
                       case "res"
                         res = cellfun(@(x) obj.vector.res(x), obj.indices, 'uni', false);
-                        adj_ind = index_adjustment(index_op(1).Indices);
                         out = squeeze(res(adj_ind{:}));
                       case "mult"
                         mult = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
-                        adj_ind = index_adjustment(index_op(1).Indices);
                         out = squeeze(mult(adj_ind{:}));
                       otherwise
                         error('vdx only supports getting lb, ub, init, res, or mult for a variable via dot indexing');
@@ -235,6 +250,17 @@ classdef Variable < handle &...
         end
 
         function obj = parenAssign(obj,index_op,varargin)
+            if isempty(obj.depth)
+                obj.depth = length(index_op(1).Indices);
+            end
+            if obj.depth ~= length(index_op(1).Indices)
+                err.message = sprintf(['You are assigning to variable using ' num2str(length(index_op(1).Indices)) ' subscripts but this variable expects ' num2str(obj.depth) ' subscripts.']);
+                err.identifier = 'vdx:indexing:incorrect_num_of_subscripts';
+                stack = dbstack('-completenames');
+                stack(1).name = 'Variable.assignment';
+                err.stack = stack;
+                error(err);
+            end
             if isscalar(index_op)
                 % get the cell array of args (x,x0,lbx,ubx)
                 arg = varargin{1};
@@ -333,8 +359,6 @@ classdef Variable < handle &...
                     % TODO(@anton) better error here, (maybe do some heuristic on what user was trying to do).
                 end
             end
-            % TODO(@anton) dot indexng synatctic sugar needs some more thought and possibly a _lot_ more logic to handle
-            %              different modalities of the RHS, including assigning to multiple indexes at once.
         end
 
         function n = parenListLength(obj,index_op,ctx)
@@ -352,6 +376,26 @@ classdef Variable < handle &...
         end
     end
 
+    methods (Access=private)
+        function unacceptable = unacceptable_indices(obj, adj_ind)
+            sz = size(obj.indices);
+            sz = sz(1:obj.depth);
+            if is_index_scalar(adj_ind)
+                unacceptable = find([adj_ind{:}] > sz);
+            else
+                more_adj_ind = adj_ind;
+                for ii=1:length(adj_ind)
+                    if strcmp(adj_ind{ii}, ':')
+                        more_adj_ind{ii} = 1;
+                    end
+                end
+                inorderlst = all_combinations(more_adj_ind{:});
+
+                unacceptable = find(sum(inorderlst > repmat(sz, size(inorderlst,1), 1)), 1);
+            end
+        end
+    end
+    
     methods (Static, Access=public)
         function obj = empty()
             obj = [];
@@ -376,4 +420,8 @@ function istring = index_string(indices)
     for i=indices
         istring = [istring '_' num2str(i)];
     end
+end
+
+function res = all_indices_integral(indices)
+    res = all(cellfun(@(x) (isnumeric(x) & all(round(x) == x)) | strcmp(x,':'), indices));
 end
