@@ -74,7 +74,7 @@ prob.w.x(0,0,data.n_s).ub = [x0;inf];
 prob.w.lambda(0,0,data.n_s).init = 0;
 prob.w.lambda(0,0,data.n_s).lb = 0;
 prob.w.lambda(0,0,data.n_s).ub = 0;
-prob.p.gamma_h(1).init = 1000;
+prob.p.gamma_h(0).init = 1000;
 homotopy(prob);
 %% plot
 fontsize = 12;

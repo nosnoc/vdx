@@ -317,7 +317,7 @@ classdef Vector < handle &...
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
             if ~isfield(obj.variables, name)
-                error(['Variable ' name ' does not exist on this vector'])
+                error(['Variable ' char(name) ' does not exist on this vector'])
             end
             varargout{1} = obj.variables.(index_op);
         end

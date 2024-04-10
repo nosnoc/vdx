@@ -39,7 +39,7 @@ The syntax for adding a variable is as follows:
 ```
 the first of which takes a CasADi symbolic vector as its first member and the second generates the CasADi symbolic from a name and a vector size.
 
-If `<index>` is not scalar one can initalize multiple indices at once. THis
+If `<index>` is not scalar one can initalize multiple indices at once.
 This is useful to compactly populate the variable in multiple dimensions.
 You can modify the bounds and initial values of a variable by assigning to the `lb`, `ub`, and `init` fields of a variable class:
 ```Matlab

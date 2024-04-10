@@ -53,6 +53,16 @@ classdef Mpcc < vdx.Problem
             % TODO(@anton) multipliers for G and H
             stats = obj.solver.stats;
         end
+
+        function mpcc_struct = to_casadi_struct(obj)
+            mpcc_struct = struct;
+            mpcc_struct.x = mpcc.w.sym;
+            mpcc_struct.g = mpcc.g.sym;
+            mpcc_struct.p = mpcc.p.sym;
+            mpcc_struct.G = mpcc.G.sym;
+            mpcc_struct.H = mpcc.H.sym;
+            mpcc_struct.f = mpcc.f;
+        end
     end
 
     methods (Access=protected)

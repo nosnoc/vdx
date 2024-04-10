@@ -4,7 +4,7 @@ clear all;
 
 prob = vdx.Problem();
 
-n_masses = 1000;
+n_masses = 100;
 
 % bounds
 lbx = -inf; ubx = inf;

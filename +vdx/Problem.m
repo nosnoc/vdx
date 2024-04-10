@@ -91,6 +91,14 @@ classdef Problem < handle &...
             obj.f_result = full(nlp_results.f);
             stats = obj.solver.stats;
         end
+
+        function mpcc_struct = to_casadi_struct(obj)
+            mpcc_struct = struct;
+            mpcc_struct.x = obj.w.sym;
+            mpcc_struct.g = obj.g.sym;
+            mpcc_struct.p = obj.p.sym;
+            mpcc_struct.f = obj.f;
+        end
     end
     
     methods (Access=protected)
