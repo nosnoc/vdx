@@ -3,7 +3,8 @@ classdef Problem < handle &...
 % A class represnting an NLP in the form:
 % TODO(@anton) figure out how to write the NLP in docs in a nice way
 %
-% :param string casadi_type: either 'SX' (default) or 'MX' which determines the kind of CasADi symbolics uesd for all :class:`vdx.Vector`.
+%:param string casadi_type: either 'SX' (default) or 'MX' which determines the kind of CasADi symbolics uesd for all :class:`vdx.Vector`.
+%:ivar obj.w.x: This is a test
     properties (Access=public)
         % Primal variabiles
         %
@@ -29,6 +30,11 @@ classdef Problem < handle &...
         %
         %:type: double
         f_result
+
+        % Solver name
+        %
+        %:type: char
+        solver_name
     end
     properties (Access=public, NonCopyable)
         % CasADi `nlpsol` object for the given problem.
@@ -40,6 +46,7 @@ classdef Problem < handle &...
         function obj = Problem(varargin)
             p = inputParser;
             addParameter(p, 'casadi_type', 'SX');
+            addParameter(p, 'solver_name', 'vdx_problem_solver');
             parse(p, varargin{:});
             
             obj.w = vdx.Vector(obj, -inf, inf, 0, 'casadi_type', p.Results.casadi_type);
@@ -47,6 +54,8 @@ classdef Problem < handle &...
             obj.g = vdx.Vector(obj, 0, 0, 0, 'casadi_type', p.Results.casadi_type);
             obj.f = 0;
             obj.f_result = 0;
+
+            obj.solver_name = p.Results.solver_name;
         end
 
         function create_solver(obj, casadi_options, plugin)
@@ -64,7 +73,7 @@ classdef Problem < handle &...
             end
 
             casadi_nlp = struct('x', w, 'g', g, 'p', p, 'f', f);
-            obj.solver = casadi.nlpsol('proj_fesd', plugin, casadi_nlp, casadi_options);
+            obj.solver = casadi.nlpsol(obj.solver_name, plugin, casadi_nlp, casadi_options);
         end
 
         function [stats, nlp_results] = solve(obj)
