@@ -19,6 +19,9 @@ classdef Vector < handle &...
 
         % Internal struct of index tracking variables
         variables struct
+
+        % Casadi type
+        casadi_type
     end
 
     properties (Access=protected)
@@ -35,7 +38,7 @@ classdef Vector < handle &...
         numerical_properties
         numerical_outputs
         allow_nonscalar_symbolics
-        allow_non_symbolic_assignment
+        allow_nonsymbolic_assignment
     end
 
     methods (Access=public)
@@ -44,7 +47,7 @@ classdef Vector < handle &...
             addRequired(p, 'problem');
             for name=obj.numerical_properties
                 if isfield(obj.numerical_defaults, name)
-                    default = obj.numerical_defaults.(name)
+                    default = obj.numerical_defaults.(name);
                 else
                     default = 0;
                 end
@@ -58,7 +61,7 @@ classdef Vector < handle &...
             obj.problem = problem;
             obj.variables = struct;
             obj.numerical_vectors = struct;
-            
+            obj.casadi_type = p.Results.casadi_type;
 
             % Populate defaults
             for name=obj.numerical_properties
@@ -67,10 +70,10 @@ classdef Vector < handle &...
 
             % Populate vectors
             for name=obj.numerical_properties
-                obj.numerical_defaults.(name) = [];
+                obj.numerical_vectors.(name) = [];
             end
             for name=obj.numerical_outputs
-                obj.numerical_defaults.(name) = [];
+                obj.numerical_vectors.(name) = [];
             end
         end
 
@@ -365,56 +368,45 @@ classdef Vector < handle &...
     end
 
     methods (Access={?vdx.Variable, ?vdx.VariableGroup})
-        function indices = add_variable(obj, symbolic, varargin)
+        function indices = add_variable(obj, indices, symbolic, varargin)
         % Adds a :class:`vdx.Variable` to the internal symbolic and numeric vectors.
             p = inputParser;
             addRequired(p, 'obj');
             addRequired(p, 'symbolic');
             for name=obj.numerical_properties
-                default = obj.numerical_defaults.(name)
+                default = obj.numerical_defaults.(name);
                 addParameter(p, name, default);
             end
             parse(p, obj, symbolic, varargin{:});
 
             symbolic = p.Results.symbolic;
+            numeric_vals = struct;
+            for name=obj.numerical_properties
+                numeric_vals.(name) = p.Results.(name);
+            end
 
             % Check that symbolic is valid
             if iscell(symbolic) && ~isa(symbolic{1}, 'casadi.Function') && ~obj.allow_nonsymbolic_assignment
                 % TODO better error
-                error('This vector of class ' class(obj) ' does not allow for {name, size} form of assignment.')
+                error(['This vector of class ' class(obj) ' does not allow for {name, size} form of assignment.'])
             end
             % TODO more checks here
             
             % Handle non-symbolic input as (name, size) pair
-            if iscell(symbolic)
-                if ischar(symbolic{1})
-                    name = symbolic{1};
-                    len = symbolic{2};
-                    symbolic = define_casadi_symbolic(class(obj.sym), name, len);
-                end
-            end
+            symbolic = obj.eval_symbolic(symbolic, indices);
 
             % Get size and populate possibly empty values
             n = size(symbolic, 1);
-            if isempty(lb)
-                lb = obj.default_lb*ones(n,1);
-            elseif length(lb) == 1
-                lb = lb*ones(n,1);
+            for name=obj.numerical_properties
+                if length(p.Results.(name)) == 1
+                    numeric_vals.(name) = numeric_vals.(name) * ones(n,1);
+                end
             end
             
-            if isempty(ub)
-                ub = obj.default_ub*ones(n,1);
-            elseif length(ub) == 1
-                ub = ub*ones(n,1);
+            lens = [size(symbolic,1)];
+            for name=obj.numerical_properties
+                lens = [lens, size(numeric_vals.(name), 1)];
             end
-
-            if isempty(initial)
-                initial = obj.default_init*ones(n,1);
-            elseif length(initial) == 1
-                initial = initial*ones(n,1);
-            end
-            
-            lens = [size(symbolic,1),size(lb,1),size(ub,1), size(initial,1)];
             if ~all(lens == lens(1))
                 % TODO(@anton) better error message
                 error("mismatched dims")
@@ -423,22 +415,58 @@ classdef Vector < handle &...
             n_sym = size(obj.sym, 1);
 
             obj.sym = vertcat(obj.sym, symbolic);
-            obj.lb = [obj.lb; lb];
-            obj.ub = [obj.ub; ub];
-            obj.init = [obj.init; initial];
+            for name=obj.numerical_properties
+                obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); numeric_vals.(name)];
+            end
 
             % initialize results and multipliers to zero
             % TODO(@anton) is there a better descision than this?
-            obj.res = [obj.res; zeros(n,1)];
-            obj.mult = [obj.mult; zeros(n,1)];
-
+            for name=obj.numerical_outputs
+                obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); zeros(n,1)];
+            end
             indices = (n_sym+1):(n_sym+n);
         end
     end
 
     methods (Access=private)
-        function sym = eval_symbolic(sym, indices)
+        function sym = eval_symbolic(obj, sym, varargin)
         % process sym into a casadi symbolic possibly renaming using indices in the process
+            p = inputParser;
+            addRequired(p, 'sym');
+            addOptional(p, 'index', []);
+            parse(p, sym, varargin{:});
+
+            % Pile of ifs to handle different cases
+            if isempty(p.Results.index)
+                if isa(sym, ['casadi.' obj.casadi_type])
+                    % do nothing, directly pass through
+                elseif iscell(sym) && length(sym) == 2 &&...
+                        ischar(sym{1}) && length(sym{2}) == 1 && isnumeric(sym{2}) && round(sym{2}) == sym{2}
+                    sym = define_casadi_symbolic(obj.casadi_type, sym{1}, sym{2});
+                else
+                    error("Incorrect type")
+                end
+            else
+                if isa(sym, ['casadi.' obj.casadi_type])
+                    name = split(sym(1).name, '_');
+                    name = [name{1:end-1} index_string(p.Results.index)];
+                    sym = define_casadi_symbolic(obj.casadi_type, name, size(sym, 1));
+                elseif iscell(sym) && length(sym) >= 2
+                    if ischar(sym{1}) && length(sym{2}) == 1 && round(sym{2}) == sym{2}
+                        name = [sym{1} index_string(p.Results.index)];
+                        sym = define_casadi_symbolic(obj.casadi_type, name, sym{2});
+                    elseif isa(sym{1}, 'casadi.Function')
+                        arg_group = vdx.VariableGroup(sym{2}, varargs);
+                        fun = sym{1};
+                        inds = num2cell(p.Results.index);
+                        sym = fun(arg_group(inds{:}));
+                    else
+                        error("Incorrect type")
+                    end 
+                else
+                    error("Incorrect type")
+                end
+            end
         end
     end
 end
@@ -470,4 +498,11 @@ end
 function valid = valid_index(var,idx)
     ni = length(idx);
     nv = ndims(idx);
+end
+
+function istring = index_string(indices)
+    istring = '';
+    for i=indices
+        istring = [istring '_' num2str(i)];
+    end
 end

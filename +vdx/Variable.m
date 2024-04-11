@@ -266,52 +266,21 @@ classdef Variable < handle &...
                 arg = varargin{1};
                 % allow for multi index variable creation
                 if is_index_scalar(index_op(1).Indices) % A single scalar variable     
-                    symbolic = arg{1}; % TODO this living here implies we should move other handeling out of 'add_variable'
-                    if iscell(symbolic) && isa(symbolic{1}, 'casadi.Function')
-                        varargs = symbolic(3:end);
-                        arg_group = vdx.VariableGroup(symbolic{2}, varargs);
-                        fun = symbolic{1};
-                        fargs = arg_group{index_op(1).Indices{:}};
-                        symbolic = fun(fargs{:});
-                        arg{1} = symbolic;
-                    end
-                    indices = obj.vector.add_variable(arg{:});
+                    indices = obj.vector.add_variable([index_op(1).Indices{:}], arg{:});
                     adj_ind = index_adjustment(index_op.Indices);
                     obj.indices{adj_ind{:},1} = indices;
                 elseif is_index_logical_array(index_op(1).Indices) % A boolean array representing where variables should be created
                     error('indexing via logical array not yet supported')
                 else % Assume we want to assign multiple values
                     inorderlst = all_combinations(index_op.Indices{:});
-                    % Check first argument and adjust naming
-                    x = arg{1};
-                    is_fun = false;
-                    if iscell(x)
-                        if isa(x{1}, 'casadi.Function')
-                            is_fun = true;
-                            varargs = x(3:end);
-                            arg_group = vdx.VariableGroup(x{2}, varargs{:});
-                            fun = x{1};
-                        else
-                            name = x{1}; n = x{2};
-                        end
-                    else % assume it is an SX or MX
-                        name = x.name; n = size(1, x);
-                    end
 
                     % create vars and assign.
                     for ii=1:size(inorderlst)
                         curr = inorderlst(ii,:);
                         curr_cell = num2cell(curr);
                         adj_ind = index_adjustment(curr_cell);
-                        if is_fun
-                            fargs = arg_group{curr_cell{:}};
-                            symbolic = fun(fargs{:});
-                            arg{1} = symbolic;
-                        else
-                            arg{1} = {[name index_string(curr)], n};
-                        end
-                        % add variable
-                        indices = obj.vector.add_variable(arg{:});
+                        indices = obj.vector.add_variable(curr, arg{:});
+                        adj_ind = index_adjustment(curr_cell);
                         obj.indices{adj_ind{:},1} = indices;
                     end
                 end

@@ -5,7 +5,9 @@ classdef PrimalVector < vdx.Vector
     properties (Constant, Hidden)
         numerical_properties = ["lb", "ub", "init"];
         numerical_outputs = ["res", "lambda"];
-        
+
+        allow_nonscalar_symbolics = false;
+        allow_nonsymbolic_assignment = true;
         % TODO also do bound violation in output
     end
 
