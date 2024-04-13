@@ -12,7 +12,7 @@ classdef ParameterVector < vdx.Vector
     end
 
     methods
-        function obj = PrimalVector(problem, varargin)
+        function obj = ParameterVector(problem, varargin)
             obj = obj@vdx.Vector(problem, varargin{:});
         end
     end

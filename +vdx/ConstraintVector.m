@@ -12,7 +12,7 @@ classdef ConstraintVector < vdx.Vector
     end
 
     methods
-        function obj = PrimalVector(problem, varargin)
+        function obj = ConstraintVector(problem, varargin)
             obj = obj@vdx.Vector(problem, varargin{:});
         end
     end

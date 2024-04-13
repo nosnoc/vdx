@@ -8,18 +8,18 @@ classdef Problem < handle &...
     properties (Access=public)
         % Primal variabiles
         %
-        %:type: vdx.Vector
-        w vdx.Vector
+        %:type: vdx.PrimalVector
+        w vdx.PrimalVector
         
         % Constraints
         %
-        %:type: vdx.Vector
-        g vdx.Vector
+        %:type: vdx.ConstraintVector
+        g vdx.ConstraintVector
         
         % Parameters
         %
-        %:type: vdx.Vector
-        p vdx.Vector
+        %:type: vdx.ParameterVector
+        p vdx.ParameterVector
         
         % Objective
         %
@@ -49,9 +49,9 @@ classdef Problem < handle &...
             addParameter(p, 'solver_name', 'vdx_problem_solver');
             parse(p, varargin{:});
             
-            obj.w = vdx.Vector(obj, -inf, inf, 0, 'casadi_type', p.Results.casadi_type);
-            obj.p = vdx.Vector(obj, -inf, inf, 0, 'casadi_type', p.Results.casadi_type);
-            obj.g = vdx.Vector(obj, 0, 0, 0, 'casadi_type', p.Results.casadi_type);
+            obj.w = vdx.PrimalVector(obj, 'casadi_type', p.Results.casadi_type);
+            obj.p = vdx.ConstraintVector(obj, 'casadi_type', p.Results.casadi_type);
+            obj.g = vdx.ParameterVector(obj, 'casadi_type', p.Results.casadi_type);
             obj.f = 0;
             obj.f_result = 0;
 
