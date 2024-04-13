@@ -11,66 +11,11 @@ classdef Variable < handle &...
         vector
     end
 
-    properties (Dependent)
-        % Horizonally concatenated vectors of all lower bounds of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        lb
-
-        % Horizonally concatenated vectors of all upper bounds of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        ub
-
-        % Horizonally concatenated vectors of all initial values of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        init
-
-        % Horizonally concatenated vectors of all results of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        res
-
-        % Horizonally concatenated vectors of all Lagrange multipliers of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        mult
-    end
-
     properties (SetAccess=private)
         % Number of indices supported by this variable.
         %
         %:type: double
         depth = []
-    end
-    
-    methods
-        function out = get.lb(obj)
-            out = cellfun(@(x) obj.vector.lb(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
-        function out = get.ub(obj)
-            out = cellfun(@(x) obj.vector.ub(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
-        function out = get.init(obj)
-            out = cellfun(@(x) obj.vector.init(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
-        function out = get.res(obj)
-            out = cellfun(@(x) obj.vector.res(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
-        function out = get.mult(obj)
-            out = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
     end
 
     methods(Access=public)
@@ -98,84 +43,35 @@ classdef Variable < handle &...
         %
         % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
         % Default prints all columns.
-            sym = false;
-            lb = false;
-            ub = false;
-            init = false;
-            res = false;
-            mult = false;
+
+            printed_cols = [];
+            % Calculate which cols to print.
             if isempty(varargin)
-                sym = true;
-                lb = true;
-                ub = true;
-                init = true;
-                res = true;
-                mult = true;
+                printed_cols = [obj.vector.numerical_properties, obj.vector.numerical_outputs, "sym"];
             else
-                if any(ismember(lower(varargin), 'sym'))
-                    sym = true;
-                end
-                if any(ismember(lower(varargin), 'lb'))
-                    lb = true;
-                end
-                if any(ismember(lower(varargin), 'ub'))
-                    ub = true;
-                end
-                if any(ismember(lower(varargin), 'init'))
-                    init = true;
-                end
-                if any(ismember(lower(varargin), 'res'))
-                    res = true;
-                end
-                if any(ismember(lower(varargin), 'mult'))
-                    mult = true;
-                end
+                printed_cols = [varargin{:}];
             end
 
             % Generate header
             header = 'i\t\t';
-            if lb
-                header = [header 'lb\t\t'];
-            end
-            if ub
-                header = [header 'ub\t\t'];
-            end
-            if init
-                header = [header 'init\t\t'];
-            end
-            if res
-                header = [header 'res\t\t'];
-            end
-            if mult
-                header = [header 'mult\t\t'];
-            end
-            if sym
-                header = [header 'sym\t\t'];
+            for name=printed_cols
+                header = [header, char(name), '\t\t'];
             end
             header = [header '\n'];
+            fprintf(header);
 
             % iterate over all requested values
             indices = sort([obj.indices{:}]);
-            output = header;
+            output = [];
             for ii=indices
                 pline = [num2str(ii) '\t\t'];
-                if lb
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.lb(ii))];
-                end
-                if ub
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.ub(ii))];
-                end
-                if init
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.init(ii))];
-                end
-                if res
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.res(ii))];
-                end
-                if mult
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.mult(ii))];
-                end
-                if sym
-                    pline = [pline char(formattedDisplayText(obj.vector.sym(ii)))];
+                for name=printed_cols
+                    if strcmp(name,"sym")
+                        pline = [pline char(formattedDisplayText(obj.sym(ii)))];
+                    else
+                        vec = obj.vector.numerical_vectors.(name);
+                        pline = [pline sprintf('%-8.5g\t', vec(ii))];
+                    end
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
@@ -217,25 +113,13 @@ classdef Variable < handle &...
                 out = squeeze(symbolics(adj_ind{:}));
             else
                 if index_op(2).Type == 'Dot'
-                    switch(index_op(2).Name)
-                      case "lb"
-                        lb = cellfun(@(x) obj.vector.lb(x), obj.indices, 'uni', false);
-                        out = squeeze(lb(adj_ind{:}));
-                      case "ub"
-                        ub = cellfun(@(x) obj.vector.ub(x), obj.indices, 'uni', false);
-                        out = squeeze(ub(adj_ind{:}));
-                      case "init"
-                        init = cellfun(@(x) obj.vector.init(x), obj.indices, 'uni', false);
-                        out = squeeze(init(adj_ind{:}));
-                      case "res"
-                        res = cellfun(@(x) obj.vector.res(x), obj.indices, 'uni', false);
-                        out = squeeze(res(adj_ind{:}));
-                      case "mult"
-                        mult = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
-                        out = squeeze(mult(adj_ind{:}));
-                      otherwise
-                        error('vdx only supports getting lb, ub, init, res, or mult for a variable via dot indexing');
+                    if ~ismember(index_op(2).Name, [obj.vector.numerical_properties, obj.vector.numerical_outputs])
+                        % TODO(@anton) better error
+                        error('Attempt to access unsupported property for this vector type')
                     end
+                    num_vec = obj.vector.numerical_vectors.(index_op(2).Name);
+                    num = cellfun(@(x) num_vec(x), obj.indices, 'uni', false);
+                    out = squeeze(num(adj_ind{:}));
                 else
                     error('unsupported indexing');
                     % TODO(@anton) better error here.
@@ -287,41 +171,17 @@ classdef Variable < handle &...
             else
                 if index_op(2).Type == 'Dot'
                     if is_index_scalar(index_op(1).Indices)
-                        switch(index_op(2).Name)
-                          case "lb"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.lb(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "ub"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.ub(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "init"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.init(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "mult"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.mult(obj.indices{adj_ind{:}}) = varargin{1};
-                          otherwise
-                            error('vdx only supports assigning lb, ub, mult, or init for a variable via dot indexing');
+                        if ~ismember(index_op(2).Name, [obj.vector.numerical_properties])
+                            % TODO(@anton) better error
+                            error('Attempt to assign to unsupported property for this vector type')
                         end
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        obj.vector.numerical_vectors.(index_op(2).Name)(obj.indices{adj_ind{:}}) = varargin{1};
                     else
                         % TODO (@anton) preempt wrong size with a good error
                         % TODO (@anton) allow for structured right hand side
-                        switch(index_op(2).Name)
-                          case "lb"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.lb(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "ub"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.ub(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "init"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.init(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "mult"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.mult(obj.indices{adj_ind{:}}) = varargin{1};
-                          otherwise
-                            error('vdx only supports assigning lb, ub, mult, or init for a variable via dot indexing');
-                        end
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        obj.vector.numerical_vectors.(index_op(2).Name)(obj.indices{adj_ind{:}}) = varargin{1};
                     end
                 else
                     error('unsupported indexing');

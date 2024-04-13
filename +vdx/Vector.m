@@ -24,7 +24,7 @@ classdef Vector < handle &...
         casadi_type
     end
 
-    properties (Access=protected)
+    properties (Access={?vdx.Variable,?vdx.Vector})
          % internal struct of numerical data associated with this
         numerical_vectors struct
     end
@@ -80,61 +80,20 @@ classdef Vector < handle &...
         function print(obj, varargin)
         % Pretty prints this vector with the specified columns.
         %
-        % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
+        % Available columns are the strings in the union of :attr:`numerical_properties` and :attr:`numerical_outputs`, which are passed as string arguments to this method.
         % Default prints all columns.
-            sym = false;
-            lb = false;
-            ub = false;
-            init = false;
-            res = false;
-            mult = false;
+            printed_cols = [];
+            % Calculate which cols to print.
             if isempty(varargin)
-                sym = true;
-                lb = true;
-                ub = true;
-                init = true;
-                res = true;
-                mult = true;
+                printed_cols = [obj.numerical_properties, obj.numerical_outputs, "sym"];
             else
-                if any(ismember(lower(varargin), 'sym'))
-                    sym = true;
-                end
-                if any(ismember(lower(varargin), 'lb'))
-                    lb = true;
-                end
-                if any(ismember(lower(varargin), 'ub'))
-                    ub = true;
-                end
-                if any(ismember(lower(varargin), 'init'))
-                    init = true;
-                end
-                if any(ismember(lower(varargin), 'res'))
-                    res = true;
-                end
-                if any(ismember(lower(varargin), 'mult'))
-                    mult = true;
-                end
+                printed_cols = [varargin{:}];
             end
 
             % Generate header
             header = 'i\t\t';
-            if lb
-                header = [header 'lb\t\t'];
-            end
-            if ub
-                header = [header 'ub\t\t'];
-            end
-            if init
-                header = [header 'init\t\t'];
-            end
-            if res
-                header = [header 'res\t\t'];
-            end
-            if mult
-                header = [header 'mult\t\t'];
-            end
-            if sym
-                header = [header 'sym\t\t'];
+            for name=printed_cols
+                header = [header, char(name), '\t\t'];
             end
             header = [header '\n'];
             fprintf(header);
@@ -144,23 +103,13 @@ classdef Vector < handle &...
             output = [];
             for ii=1:n
                 pline = [num2str(ii) '\t\t'];
-                if lb
-                    pline = [pline sprintf('%-8.5g\t', obj.lb(ii))];
-                end
-                if ub
-                    pline = [pline sprintf('%-8.5g\t', obj.ub(ii))];
-                end
-                if init
-                    pline = [pline sprintf('%-8.5g\t', obj.init(ii))];
-                end
-                if res
-                    pline = [pline sprintf('%-8.5g\t', obj.res(ii))];
-                end
-                if mult
-                    pline = [pline sprintf('%-8.5g\t', obj.mult(ii))];
-                end
-                if sym
-                    pline = [pline char(formattedDisplayText(obj.sym(ii)))];
+                for name=printed_cols
+                    if strcmp(name,"sym")
+                        pline = [pline char(formattedDisplayText(obj.sym(ii)))];
+                    else
+                        vec = obj.numerical_vectors.(name);
+                        pline = [pline sprintf('%-8.5g\t', vec(ii))];
+                    end
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
