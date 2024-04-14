@@ -1,6 +1,7 @@
 classdef Variable < handle &...
         matlab.mixin.indexing.RedefinesParen &...
         matlab.mixin.indexing.RedefinesDot &...
+        matlab.mixin.CustomDisplay &...
         matlab.mixin.Copyable
     properties
         % Indices of this :class:`vdx.Variable` in its :class:vdx.Vector.
@@ -226,6 +227,40 @@ classdef Variable < handle &...
             cp = copyElement@matlab.mixin.Copyable(obj);
 
             cp.vector = [];
+        end
+
+        function propgrp = getPropertyGroups(obj)
+            gTitle1 = 'Numeric properties';
+            gTitle2 = 'Numeric Outputs';
+            propList1 = struct;
+            for name=obj.vector.numerical_properties
+                propList1.(name) = [];% TODO(@anton) better custom display here
+            end
+            propList2 = struct;
+            for name=obj.vector.numerical_outputs
+                propList2.(name) = [];% TODO(@anton) better custom display here
+            end
+            propgrp(1) = matlab.mixin.util.PropertyGroup(propList1,gTitle1);
+            propgrp(2) = matlab.mixin.util.PropertyGroup(propList2,gTitle2);
+        end
+
+        function displayScalarObject(obj)
+            className = matlab.mixin.CustomDisplay.getClassNameForHeader(obj);
+            scalarHeader = [className];
+            header = sprintf('%s\n',scalarHeader);
+            disp(header)
+            propgroup = getPropertyGroups(obj);
+            matlab.mixin.CustomDisplay.displayPropertyGroups(obj,propgroup)
+        end
+
+        function displayNonScalarObject(obj)
+            dimStr = matlab.mixin.CustomDisplay.convertDimensionsToString(obj);
+            cName = matlab.mixin.CustomDisplay.getClassNameForHeader(obj);
+            headerStr = [dimStr,' ',cName];
+            header = sprintf('%s\n',headerStr);
+            disp(header)
+            propgroup = getPropertyGroups(obj);
+            matlab.mixin.CustomDisplay.displayPropertyGroups(obj,propgroup)
         end
     end
 
