@@ -1,5 +1,6 @@
 classdef Vector < handle &...
         matlab.mixin.indexing.RedefinesDot &...
+        matlab.mixin.CustomDisplay &...
         dynamicprops &...
         matlab.mixin.Copyable
 % A class which provides a wrapper around CasADi symbolics and tracks the indicies of :class:`vdx.Variable` within it.
@@ -313,6 +314,36 @@ classdef Vector < handle &...
                 % Solver needs to be cleared.
                 cp.variables.(var_names{ii}).solver = [];
             end
+        end
+
+        function propgrp = getPropertyGroups(obj)
+            if ~isscalar(obj)
+                propgrp = getPropertyGroups@matlab.mixin.CustomDisplay(obj);
+            else
+                gTitle1 = 'Numeric properties';
+                gTitle2 = 'Numeric Outputs';
+                propList1 = struct;
+                for name=obj.numerical_properties
+                    propList1.(name) = obj.numerical_vectors.(name);
+                end
+                propList2 = struct;
+                for name=obj.numerical_outputs
+                    propList2.(name) = obj.numerical_vectors.(name);
+                end
+                propgrp(1) = matlab.mixin.util.PropertyGroup({'sym'});
+                propgrp(2) = matlab.mixin.util.PropertyGroup(propList1,gTitle1);
+                propgrp(3) = matlab.mixin.util.PropertyGroup(propList2,gTitle2);
+                propgrp(4) = matlab.mixin.util.PropertyGroup(obj.variables, 'Variables');
+            end
+        end
+
+        function displayScalarObject(obj)
+            className = matlab.mixin.CustomDisplay.getClassNameForHeader(obj);
+            scalarHeader = [className];
+            header = sprintf('%s\n',scalarHeader);
+            disp(header)
+            propgroup = getPropertyGroups(obj);
+            matlab.mixin.CustomDisplay.displayPropertyGroups(obj,propgroup)
         end
     end
 
