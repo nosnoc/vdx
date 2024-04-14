@@ -1,5 +1,6 @@
 classdef Variable < handle &...
         matlab.mixin.indexing.RedefinesParen &...
+        matlab.mixin.indexing.RedefinesDot &...
         matlab.mixin.Copyable
     properties
         % Indices of this :class:`vdx.Variable` in its :class:vdx.Vector.
@@ -81,6 +82,29 @@ classdef Variable < handle &...
     end
 
     methods (Access=protected)
+        function varargout = dotReference(obj,index_op)
+            name = index_op(1).Name;
+            if ~ismember(name,[obj.vector.numerical_properties, obj.vector.numerical_outputs])
+                error(['numerical vector ' name ' is does not exist for this vector'])
+            end
+            if ~isscalar(index_op)
+                % TODO(@anton) better error here
+                error('Compound indexing is not supported')
+            end
+            vec = obj.vector.(name);
+            out = cellfun(@(x) vec(x), obj.indices, 'uni', false);
+            out = permute(out, ndims(out):-1:1);
+            varargout{1} = [out{:}];
+        end
+
+        function obj = dotAssign(obj,index_op,varargin)
+            error('Assigning to unindexed variable is not supported')
+        end
+
+        function n = dotListLength(obj,index_op,indexContext)
+            n=1;
+        end
+        
         function varargout = parenReference(obj, index_op)
             if obj.depth ~= length(index_op(1).Indices)
                 err.message = sprintf(['You are subscripting a variable using ' num2str(length(index_op(1).Indices)) ' subscripts but this variable expects ' num2str(obj.depth) ' subscripts.']);
@@ -150,7 +174,7 @@ classdef Variable < handle &...
                 arg = varargin{1};
                 % allow for multi index variable creation
                 if is_index_scalar(index_op(1).Indices) % A single scalar variable     
-                    indices = obj.vector.add_variable([index_op(1).Indices{:}], arg{:});
+                    indices = obj.vector.add_variable([], arg{:});
                     adj_ind = index_adjustment(index_op.Indices);
                     obj.indices{adj_ind{:},1} = indices;
                 elseif is_index_logical_array(index_op(1).Indices) % A boolean array representing where variables should be created

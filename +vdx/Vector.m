@@ -165,26 +165,22 @@ classdef Vector < handle &...
             inorderlst = all_combinations(indices{:})-1;
 
             % new vectors.
-            % TODO(@anton) do we want to also re-organize mult and res?
             new_sym = [];
-            new_lb = [];
-            new_ub = [];
-            new_init = [];
+            new_numerics = struct;
+            for name=[obj.numerical_properties, obj.numerical_outputs]
+                new_numerics.(name) = [];
+            end
 
             % First re-normalize 0 dimensional vars (i.e indicies 1x1)
             d_vars = vars_by_depth{1};
             for jj=1:numel(d_vars)
                 var = obj.variables.(d_vars{jj});
                 n_new_sym = length(new_sym);
-                v_sym = var(0);
-                v_lb = var(0).lb;
-                v_ub = var(0).ub;
-                v_init = var(0).init;
-
+                v_sym = var();
                 new_sym = vertcat(new_sym, v_sym);
-                new_lb = [new_lb; v_lb];
-                new_ub = [new_ub; v_ub];
-                new_init = [new_init; v_init];
+                for name=[obj.numerical_properties, obj.numerical_outputs]
+                    new_numerics.(name) = vertcat(new_numerics.(name), var().(name));
+                end
 
                 n = length(v_sym);
                 indices = (n_new_sym+1):(n_new_sym+n);
@@ -206,15 +202,11 @@ classdef Vector < handle &...
                         var = obj.variables.(d_vars{jj});
                         n_new_sym = length(new_sym);
                         v_sym = var(curr_for_dim{:});
-                        v_lb = var(curr_for_dim{:}).lb;
-                        v_ub = var(curr_for_dim{:}).ub;
-                        v_init = var(curr_for_dim{:}).init;
-
                         new_sym = vertcat(new_sym, v_sym);
-                        new_lb = [new_lb; v_lb];
-                        new_ub = [new_ub; v_ub];
-                        new_init = [new_init; v_init];
-
+                        for name=[obj.numerical_properties, obj.numerical_outputs]
+                            new_numerics.(name) = vertcat(new_numerics.(name), var(curr_for_dim{:}).(name));
+                        end
+                        
                         n = length(v_sym);
                         indices = (n_new_sym+1):(n_new_sym+n);
                         curr_for_dim_adj = num2cell(curr(1:dim)+1);
@@ -223,9 +215,7 @@ classdef Vector < handle &...
                 end
             end
             obj.sym = new_sym;
-            obj.lb = new_lb;
-            obj.ub = new_ub;
-            obj.init = new_init;
+            obj.numerical_vectors = new_numerics;
         end
 
         function add_variable_group(obj, name, vars, varargin)
@@ -241,6 +231,11 @@ classdef Vector < handle &...
     methods (Access=protected)
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
+            % first try numerical vectors
+            if ismember(name,[obj.numerical_properties, obj.numerical_outputs])
+                varargout{1} = obj.numerical_vectors.(name);
+                return
+            end
             if ~isfield(obj.variables, name)
                 err.message = sprintf(['Variable ' char(name) ' does not exist on this vector']);
                 err.identifier = 'vdx:indexing:assign_to_scalar';
@@ -268,6 +263,11 @@ classdef Vector < handle &...
                 matlab_bug_workaround_to_prevent_garbage_collection = varargin{1};
             end
             name = index_op(1).Name;
+            % first try numerical vectors
+            if ismember(name,[obj.numerical_properties, obj.numerical_outputs])
+                obj.numerical_vectors.(index_op) = varargin{1};
+                return
+            end
             if isscalar(index_op)
                 if ~isfield(obj.variables,name) % Workaround for scalar variables because matlab throws a fit if you try x() = 1;
                     var = vdx.Variable(obj);
@@ -324,7 +324,7 @@ classdef Vector < handle &...
             addRequired(p, 'symbolic');
             for name=obj.numerical_properties
                 default = obj.numerical_defaults.(name);
-                addParameter(p, name, default);
+                addOptional(p, name, default);
             end
             parse(p, obj, symbolic, varargin{:});
 
@@ -397,9 +397,13 @@ classdef Vector < handle &...
                 end
             else
                 if isa(sym, ['casadi.' obj.casadi_type])
-                    name = split(sym(1).name, '_');
-                    name = [name{1:end-1} index_string(p.Results.index)];
-                    sym = define_casadi_symbolic(obj.casadi_type, name, size(sym, 1));
+                    if sym.is_symbolic % if we can make the names of symbolics nice. However this may be bad if one wants to add single variable constraints in g instead of w.
+                        name = split(sym(1).name, '_');
+                        name = [name{1:end-1} index_string(p.Results.index)];
+                        sym = define_casadi_symbolic(obj.casadi_type, name, size(sym, 1));
+                    else
+                        % pass through and do nothing
+                    end
                 elseif iscell(sym) && length(sym) >= 2
                     if ischar(sym{1}) && length(sym{2}) == 1 && round(sym{2}) == sym{2}
                         name = [sym{1} index_string(p.Results.index)];
@@ -420,6 +424,9 @@ classdef Vector < handle &...
     end
 end
 
+function res = is_index_scalar(index)
+    res = all(cellfun(@(x) isscalar(x) & ~ischar(x), index));
+end
 
 function sym = define_casadi_symbolic(type, name, dims, sparsity)
     import casadi.*

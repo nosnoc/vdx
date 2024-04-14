@@ -3,7 +3,7 @@ classdef PrimalVector < vdx.Vector
         numerical_defaults = struct('lb', -inf, 'ub', inf, 'init', 0);
     end
     properties (Constant, Hidden)
-        numerical_properties = ["lb", "ub", "init"];
+        numerical_properties = ["lb", "ub", "init", "init_lambda"];
         numerical_outputs = ["res", "lambda"];
 
         allow_nonscalar_symbolics = false;
