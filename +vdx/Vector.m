@@ -1,5 +1,6 @@
 classdef Vector < handle &...
         matlab.mixin.indexing.RedefinesDot &...
+        matlab.mixin.CustomDisplay &...
         dynamicprops &...
         matlab.mixin.Copyable
 % A class which provides a wrapper around CasADi symbolics and tracks the indicies of :class:`vdx.Variable` within it.
@@ -11,143 +12,89 @@ classdef Vector < handle &...
         %
         %:type: casadi.SX|casadi.MX
         sym
-
-        % Lower bound of vector.
-        %
-        %:type: double 
-        lb (:,1) double
-
-        % Upper bound of vector.
-        %
-        %:type: double
-        ub (:,1) double
-
-        % Initial value of vector.
-        % This is used to initialize the NLP solver in the case of primal and parameter vectors. Ignored in the case of constraint vectors.
-        %
-        %:type: double
-        init (:,1) double
-
-        % Results populated by the NLP solver.
-        % Ignored in the case of parameter vectors.
-        %
-        %:type: double
-        res (:,1) double
-        
-        % Lagrange multipliers populated by the NLP solver.
-        % Also used to set initial multipliers passed to the NLP solver.
-        %
-        %:type: double
-        mult (:,1) double
-        
-        % Default lower bound set when no lower bound is provided in an assignment.
-        %
-        %:type: double
-        default_lb (1,1) double
-        
-        % Default upper bound set when no upper bound is provided in an assignment.
-        %
-        %:type: double
-        default_ub (1,1) double
-        
-        % Default initial value set when no initial value is provided in an assignment.
-        %
-        %:type: double
-        default_init (1,1) double
     end
+    
     properties (Access=private)
         % pointer to parent problem
         problem
+
         % Internal struct of index tracking variables
         variables struct
+
+        % Casadi type
+        casadi_type
     end
 
-    properties (Dependent)
-        
+    properties (Access={?vdx.Variable,?vdx.Vector})
+         % internal struct of numerical data associated with this
+        numerical_vectors struct
+    end
+    
+    properties (Access=protected, Abstract)
+        % default values for numerical vectors
+        numerical_defaults
+    end
+
+    properties (Constant, Abstract, Hidden)
+        numerical_properties
+        numerical_outputs
+        allow_nonscalar_symbolics
+        allow_nonsymbolic_assignment
     end
 
     methods (Access=public)
         function obj = Vector(problem, varargin)
             p = inputParser;
             addRequired(p, 'problem');
-            addOptional(p, 'lb', -inf);
-            addOptional(p, 'ub', inf);
-            addOptional(p, 'init', 0);
+            for name=obj.numerical_properties
+                if isfield(obj.numerical_defaults, name)
+                    default = obj.numerical_defaults.(name);
+                else
+                    default = 0;
+                end
+                addParameter(p, ['default_' char(name)], default);
+            end
             addParameter(p, 'casadi_type', 'SX');
             parse(p, problem, varargin{:});
-            
+
+            % Populate core functionality
+            obj.sym = casadi.(p.Results.casadi_type);
             obj.problem = problem;
             obj.variables = struct;
+            obj.numerical_vectors = struct;
+            obj.casadi_type = p.Results.casadi_type;
 
             % Populate defaults
-            obj.default_lb = p.Results.lb;
-            obj.default_ub = p.Results.ub;
-            obj.default_init = p.Results.init;
+            for name=obj.numerical_properties
+                obj.numerical_defaults.(name) = p.Results.(['default_' char(name)]);
+            end
 
-            obj.sym = casadi.(p.Results.casadi_type);
-            obj.lb = [];
-            obj.ub = [];
-            obj.init = [];
+            % Populate vectors
+            for name=obj.numerical_properties
+                obj.numerical_vectors.(name) = [];
+            end
+            for name=obj.numerical_outputs
+                obj.numerical_vectors.(name) = [];
+            end
         end
 
         function print(obj, varargin)
         % Pretty prints this vector with the specified columns.
         %
-        % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
+        % Available columns are the strings in the union of :attr:`numerical_properties` and :attr:`numerical_outputs`, which are passed as string arguments to this method.
         % Default prints all columns.
-            sym = false;
-            lb = false;
-            ub = false;
-            init = false;
-            res = false;
-            mult = false;
+            printed_cols = [];
+            % Calculate which cols to print.
             if isempty(varargin)
-                sym = true;
-                lb = true;
-                ub = true;
-                init = true;
-                res = true;
-                mult = true;
+                printed_cols = [obj.numerical_properties, obj.numerical_outputs, "sym"];
             else
-                if any(ismember(lower(varargin), 'sym'))
-                    sym = true;
-                end
-                if any(ismember(lower(varargin), 'lb'))
-                    lb = true;
-                end
-                if any(ismember(lower(varargin), 'ub'))
-                    ub = true;
-                end
-                if any(ismember(lower(varargin), 'init'))
-                    init = true;
-                end
-                if any(ismember(lower(varargin), 'res'))
-                    res = true;
-                end
-                if any(ismember(lower(varargin), 'mult'))
-                    mult = true;
-                end
+                printed_cols = [varargin{:}];
             end
 
             % Generate header
             header = 'i\t\t';
-            if lb
-                header = [header 'lb\t\t'];
-            end
-            if ub
-                header = [header 'ub\t\t'];
-            end
-            if init
-                header = [header 'init\t\t'];
-            end
-            if res
-                header = [header 'res\t\t'];
-            end
-            if mult
-                header = [header 'mult\t\t'];
-            end
-            if sym
-                header = [header 'sym\t\t'];
+            for name=printed_cols
+                header = [header, char(name), '\t\t'];
             end
             header = [header '\n'];
             fprintf(header);
@@ -157,23 +104,13 @@ classdef Vector < handle &...
             output = [];
             for ii=1:n
                 pline = [num2str(ii) '\t\t'];
-                if lb
-                    pline = [pline sprintf('%-8.5g\t', obj.lb(ii))];
-                end
-                if ub
-                    pline = [pline sprintf('%-8.5g\t', obj.ub(ii))];
-                end
-                if init
-                    pline = [pline sprintf('%-8.5g\t', obj.init(ii))];
-                end
-                if res
-                    pline = [pline sprintf('%-8.5g\t', obj.res(ii))];
-                end
-                if mult
-                    pline = [pline sprintf('%-8.5g\t', obj.mult(ii))];
-                end
-                if sym
-                    pline = [pline char(formattedDisplayText(obj.sym(ii)))];
+                for name=printed_cols
+                    if strcmp(name,"sym")
+                        pline = [pline char(formattedDisplayText(obj.sym(ii)))];
+                    else
+                        vec = obj.numerical_vectors.(name);
+                        pline = [pline sprintf('%-8.5g\t', vec(ii))];
+                    end
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
@@ -229,26 +166,22 @@ classdef Vector < handle &...
             inorderlst = all_combinations(indices{:})-1;
 
             % new vectors.
-            % TODO(@anton) do we want to also re-organize mult and res?
             new_sym = [];
-            new_lb = [];
-            new_ub = [];
-            new_init = [];
+            new_numerics = struct;
+            for name=[obj.numerical_properties, obj.numerical_outputs]
+                new_numerics.(name) = [];
+            end
 
             % First re-normalize 0 dimensional vars (i.e indicies 1x1)
             d_vars = vars_by_depth{1};
             for jj=1:numel(d_vars)
                 var = obj.variables.(d_vars{jj});
                 n_new_sym = length(new_sym);
-                v_sym = var(0);
-                v_lb = var(0).lb;
-                v_ub = var(0).ub;
-                v_init = var(0).init;
-
+                v_sym = var();
                 new_sym = vertcat(new_sym, v_sym);
-                new_lb = [new_lb; v_lb];
-                new_ub = [new_ub; v_ub];
-                new_init = [new_init; v_init];
+                for name=[obj.numerical_properties, obj.numerical_outputs]
+                    new_numerics.(name) = vertcat(new_numerics.(name), var().(name));
+                end
 
                 n = length(v_sym);
                 indices = (n_new_sym+1):(n_new_sym+n);
@@ -270,15 +203,11 @@ classdef Vector < handle &...
                         var = obj.variables.(d_vars{jj});
                         n_new_sym = length(new_sym);
                         v_sym = var(curr_for_dim{:});
-                        v_lb = var(curr_for_dim{:}).lb;
-                        v_ub = var(curr_for_dim{:}).ub;
-                        v_init = var(curr_for_dim{:}).init;
-
                         new_sym = vertcat(new_sym, v_sym);
-                        new_lb = [new_lb; v_lb];
-                        new_ub = [new_ub; v_ub];
-                        new_init = [new_init; v_init];
-
+                        for name=[obj.numerical_properties, obj.numerical_outputs]
+                            new_numerics.(name) = vertcat(new_numerics.(name), var(curr_for_dim{:}).(name));
+                        end
+                        
                         n = length(v_sym);
                         indices = (n_new_sym+1):(n_new_sym+n);
                         curr_for_dim_adj = num2cell(curr(1:dim)+1);
@@ -287,9 +216,7 @@ classdef Vector < handle &...
                 end
             end
             obj.sym = new_sym;
-            obj.lb = new_lb;
-            obj.ub = new_ub;
-            obj.init = new_init;
+            obj.numerical_vectors = new_numerics;
         end
 
         function add_variable_group(obj, name, vars, varargin)
@@ -305,6 +232,11 @@ classdef Vector < handle &...
     methods (Access=protected)
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
+            % first try numerical vectors
+            if ismember(name,[obj.numerical_properties, obj.numerical_outputs])
+                varargout{1} = obj.numerical_vectors.(name);
+                return
+            end
             if ~isfield(obj.variables, name)
                 err.message = sprintf(['Variable ' char(name) ' does not exist on this vector']);
                 err.identifier = 'vdx:indexing:assign_to_scalar';
@@ -332,6 +264,11 @@ classdef Vector < handle &...
                 matlab_bug_workaround_to_prevent_garbage_collection = varargin{1};
             end
             name = index_op(1).Name;
+            % first try numerical vectors
+            if ismember(name,[obj.numerical_properties, obj.numerical_outputs])
+                obj.numerical_vectors.(index_op) = varargin{1};
+                return
+            end
             if isscalar(index_op)
                 if ~isfield(obj.variables,name) % Workaround for scalar variables because matlab throws a fit if you try x() = 1;
                     var = vdx.Variable(obj);
@@ -378,54 +315,78 @@ classdef Vector < handle &...
                 cp.variables.(var_names{ii}).solver = [];
             end
         end
+
+        function propgrp = getPropertyGroups(obj)
+            if ~isscalar(obj)
+                propgrp = getPropertyGroups@matlab.mixin.CustomDisplay(obj);
+            else
+                gTitle1 = 'Numeric properties';
+                gTitle2 = 'Numeric Outputs';
+                propList1 = struct;
+                for name=obj.numerical_properties
+                    propList1.(name) = obj.numerical_vectors.(name);
+                end
+                propList2 = struct;
+                for name=obj.numerical_outputs
+                    propList2.(name) = obj.numerical_vectors.(name);
+                end
+                propgrp(1) = matlab.mixin.util.PropertyGroup({'sym'});
+                propgrp(2) = matlab.mixin.util.PropertyGroup(propList1,gTitle1);
+                propgrp(3) = matlab.mixin.util.PropertyGroup(propList2,gTitle2);
+                propgrp(4) = matlab.mixin.util.PropertyGroup(obj.variables, 'Variables');
+            end
+        end
+
+        function displayScalarObject(obj)
+            className = matlab.mixin.CustomDisplay.getClassNameForHeader(obj);
+            scalarHeader = [className];
+            header = sprintf('%s\n',scalarHeader);
+            disp(header)
+            propgroup = getPropertyGroups(obj);
+            matlab.mixin.CustomDisplay.displayPropertyGroups(obj,propgroup)
+        end
     end
 
     methods (Access={?vdx.Variable, ?vdx.VariableGroup})
-        function indices = add_variable(obj, symbolic, varargin)
+        function indices = add_variable(obj, indices, symbolic, varargin)
         % Adds a :class:`vdx.Variable` to the internal symbolic and numeric vectors.
             p = inputParser;
             addRequired(p, 'obj');
             addRequired(p, 'symbolic');
-            addOptional(p, 'lb', []);
-            addOptional(p, 'ub', []);
-            addOptional(p, 'initial', []);
+            for name=obj.numerical_properties
+                default = obj.numerical_defaults.(name);
+                addOptional(p, name, default);
+            end
             parse(p, obj, symbolic, varargin{:});
 
             symbolic = p.Results.symbolic;
-            lb = p.Results.lb;
-            ub = p.Results.ub;
-            initial = p.Results.initial;
-
-            % Handle non-symbolic input as (name, size) pair
-            if iscell(symbolic)
-                if ischar(symbolic{1})
-                    name = symbolic{1};
-                    len = symbolic{2};
-                    symbolic = define_casadi_symbolic(class(obj.sym), name, len);
-                end
+            numeric_vals = struct;
+            for name=obj.numerical_properties
+                numeric_vals.(name) = p.Results.(name);
             end
+
+            % Check that symbolic is valid
+            if iscell(symbolic) && ~isa(symbolic{1}, 'casadi.Function') && ~obj.allow_nonsymbolic_assignment
+                % TODO better error
+                error(['This vector of class ' class(obj) ' does not allow for {name, size} form of assignment.'])
+            end
+            % TODO more checks here
+            
+            % Handle non-symbolic input as (name, size) pair
+            symbolic = obj.eval_symbolic(symbolic, indices);
 
             % Get size and populate possibly empty values
             n = size(symbolic, 1);
-            if isempty(lb)
-                lb = obj.default_lb*ones(n,1);
-            elseif length(lb) == 1
-                lb = lb*ones(n,1);
+            for name=obj.numerical_properties
+                if length(p.Results.(name)) == 1
+                    numeric_vals.(name) = numeric_vals.(name) * ones(n,1);
+                end
             end
             
-            if isempty(ub)
-                ub = obj.default_ub*ones(n,1);
-            elseif length(ub) == 1
-                ub = ub*ones(n,1);
+            lens = [size(symbolic,1)];
+            for name=obj.numerical_properties
+                lens = [lens, size(numeric_vals.(name), 1)];
             end
-
-            if isempty(initial)
-                initial = obj.default_init*ones(n,1);
-            elseif length(initial) == 1
-                initial = initial*ones(n,1);
-            end
-            
-            lens = [size(symbolic,1),size(lb,1),size(ub,1), size(initial,1)];
             if ~all(lens == lens(1))
                 % TODO(@anton) better error message
                 error("mismatched dims")
@@ -434,20 +395,71 @@ classdef Vector < handle &...
             n_sym = size(obj.sym, 1);
 
             obj.sym = vertcat(obj.sym, symbolic);
-            obj.lb = [obj.lb; lb];
-            obj.ub = [obj.ub; ub];
-            obj.init = [obj.init; initial];
+            for name=obj.numerical_properties
+                obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); numeric_vals.(name)];
+            end
 
             % initialize results and multipliers to zero
             % TODO(@anton) is there a better descision than this?
-            obj.res = [obj.res; zeros(n,1)];
-            obj.mult = [obj.mult; zeros(n,1)];
-
+            for name=obj.numerical_outputs
+                obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); zeros(n,1)];
+            end
             indices = (n_sym+1):(n_sym+n);
+        end
+    end
+
+    methods (Access=private)
+        function sym = eval_symbolic(obj, sym, varargin)
+        % process sym into a casadi symbolic possibly renaming using indices in the process
+            p = inputParser;
+            addRequired(p, 'sym');
+            addOptional(p, 'index', []);
+            parse(p, sym, varargin{:});
+
+            % Pile of ifs to handle different cases
+            if isempty(p.Results.index)
+                if isa(sym, ['casadi.' obj.casadi_type])
+                    % do nothing, directly pass through
+                elseif iscell(sym) && length(sym) == 2 &&...
+                        ischar(sym{1}) && length(sym{2}) == 1 && isnumeric(sym{2}) && round(sym{2}) == sym{2}
+                    sym = define_casadi_symbolic(obj.casadi_type, sym{1}, sym{2});
+                else
+                    error("Incorrect type")
+                end
+            else
+                if isa(sym, ['casadi.' obj.casadi_type])
+                    if sym.is_symbolic % if we can make the names of symbolics nice. However this may be bad if one wants to add single variable constraints in g instead of w.
+                        name = split(sym(1).name, '_');
+                        name = [name{1:end-1} index_string(p.Results.index)];
+                        sym = define_casadi_symbolic(obj.casadi_type, name, size(sym, 1));
+                    else
+                        % pass through and do nothing
+                    end
+                elseif iscell(sym) && length(sym) >= 2
+                    if ischar(sym{1}) && length(sym{2}) == 1 && round(sym{2}) == sym{2}
+                        name = [sym{1} index_string(p.Results.index)];
+                        sym = define_casadi_symbolic(obj.casadi_type, name, sym{2});
+                    elseif isa(sym{1}, 'casadi.Function')
+                        varargs = sym(3:end);
+                        arg_group = vdx.VariableGroup(sym{2}, varargs{:});
+                        fun = sym{1};
+                        inds = num2cell(p.Results.index);
+                        sym_args = arg_group{inds{:}};
+                        sym = fun(sym_args{:});
+                    else
+                        error("Incorrect type")
+                    end 
+                else
+                    error("Incorrect type")
+                end
+            end
         end
     end
 end
 
+function res = is_index_scalar(index)
+    res = all(cellfun(@(x) isscalar(x) & ~ischar(x), index));
+end
 
 function sym = define_casadi_symbolic(type, name, dims, sparsity)
     import casadi.*
@@ -475,4 +487,11 @@ end
 function valid = valid_index(var,idx)
     ni = length(idx);
     nv = ndims(idx);
+end
+
+function istring = index_string(indices)
+    istring = '';
+    for i=indices
+        istring = [istring '_' num2str(i)];
+    end
 end

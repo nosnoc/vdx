@@ -1,14 +1,14 @@
 classdef Mpcc < vdx.Problem
     properties (Access=public)
-        G
-        H
+        G vdx.ConstraintVector
+        H vdx.ConstraintVector
     end
 
     methods (Access=public)
         function obj = Mpcc()
             obj = obj@vdx.Problem();
-            obj.G = vdx.Vector(obj, 0, inf, 0);
-            obj.H = vdx.Vector(obj, 0, inf, 0);
+            obj.G = vdx.ConstraintVector(obj);
+            obj.H = vdx.ConstraintVector(obj);
         end
 
         function create_solver(obj, options, plugin)

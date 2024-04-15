@@ -8,18 +8,18 @@ classdef Problem < handle &...
     properties (Access=public)
         % Primal variabiles
         %
-        %:type: vdx.Vector
-        w vdx.Vector
+        %:type: vdx.PrimalVector
+        w vdx.PrimalVector
         
         % Constraints
         %
-        %:type: vdx.Vector
-        g vdx.Vector
+        %:type: vdx.ConstraintVector
+        g vdx.ConstraintVector
         
         % Parameters
         %
-        %:type: vdx.Vector
-        p vdx.Vector
+        %:type: vdx.ParameterVector
+        p vdx.ParameterVector
         
         % Objective
         %
@@ -49,9 +49,9 @@ classdef Problem < handle &...
             addParameter(p, 'solver_name', 'vdx_problem_solver');
             parse(p, varargin{:});
             
-            obj.w = vdx.Vector(obj, -inf, inf, 0, 'casadi_type', p.Results.casadi_type);
-            obj.p = vdx.Vector(obj, -inf, inf, 0, 'casadi_type', p.Results.casadi_type);
-            obj.g = vdx.Vector(obj, 0, 0, 0, 'casadi_type', p.Results.casadi_type);
+            obj.w = vdx.PrimalVector(obj, 'casadi_type', p.Results.casadi_type);
+            obj.g = vdx.ConstraintVector(obj, 'casadi_type', p.Results.casadi_type);
+            obj.p = vdx.ParameterVector(obj, 'casadi_type', p.Results.casadi_type);
             obj.f = 0;
             obj.f_result = 0;
 
@@ -81,18 +81,27 @@ classdef Problem < handle &...
                 'ubx', obj.w.ub,...
                 'lbg', obj.g.lb,...
                 'ubg', obj.g.ub,...
-                'lam_g0', obj.g.mult,...% TODO(@anton) perhaps we use init instead of mult.
-                'lam_x0', obj.w.mult,...
-                'p', obj.p.init);
+                'lam_g0', obj.g.init_mult,...% TODO(@anton) perhaps we use init instead of mult.
+                'lam_x0', obj.w.init_mult,...
+                'p', obj.p.val);
             if ~obj.solver.stats.success
                 %warning("failed to converge")
             end
             obj.w.res = full(nlp_results.x);
             obj.w.mult = full(nlp_results.lam_x);
-            obj.g.res = full(nlp_results.g);
+            obj.g.eval = full(nlp_results.g);
             obj.g.mult = full(nlp_results.lam_g);
             obj.p.mult = full(nlp_results.lam_p);
             obj.f_result = full(nlp_results.f);
+
+            % Calculate violations:
+            w_lb_viol = max(obj.w.lb - obj.w.res, 0);
+            w_ub_viol = max(obj.w.res - obj.w.ub, 0);
+            obj.w.violation = max(w_lb_viol, w_ub_viol);
+            g_lb_viol = max(obj.g.lb - obj.g.eval, 0);
+            g_ub_viol = max(obj.g.eval - obj.g.ub, 0);
+            obj.w.violation = max(g_lb_viol, g_ub_viol);
+            
             stats = obj.solver.stats;
         end
 

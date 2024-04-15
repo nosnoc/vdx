@@ -1,5 +1,7 @@
 classdef Variable < handle &...
         matlab.mixin.indexing.RedefinesParen &...
+        matlab.mixin.indexing.RedefinesDot &...
+        matlab.mixin.CustomDisplay &...
         matlab.mixin.Copyable
     properties
         % Indices of this :class:`vdx.Variable` in its :class:vdx.Vector.
@@ -11,66 +13,11 @@ classdef Variable < handle &...
         vector
     end
 
-    properties (Dependent)
-        % Horizonally concatenated vectors of all lower bounds of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        lb
-
-        % Horizonally concatenated vectors of all upper bounds of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        ub
-
-        % Horizonally concatenated vectors of all initial values of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        init
-
-        % Horizonally concatenated vectors of all results of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        res
-
-        % Horizonally concatenated vectors of all Lagrange multipliers of this :class:`vdx.Variable`.
-        %
-        %:type: double
-        mult
-    end
-
     properties (SetAccess=private)
         % Number of indices supported by this variable.
         %
         %:type: double
         depth = []
-    end
-    
-    methods
-        function out = get.lb(obj)
-            out = cellfun(@(x) obj.vector.lb(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
-        function out = get.ub(obj)
-            out = cellfun(@(x) obj.vector.ub(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
-        function out = get.init(obj)
-            out = cellfun(@(x) obj.vector.init(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
-        function out = get.res(obj)
-            out = cellfun(@(x) obj.vector.res(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
-        function out = get.mult(obj)
-            out = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
-            out = permute(out, ndims(out):-1:1);
-            out = [out{:}];
-        end
     end
 
     methods(Access=public)
@@ -98,84 +45,35 @@ classdef Variable < handle &...
         %
         % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
         % Default prints all columns.
-            sym = false;
-            lb = false;
-            ub = false;
-            init = false;
-            res = false;
-            mult = false;
+
+            printed_cols = [];
+            % Calculate which cols to print.
             if isempty(varargin)
-                sym = true;
-                lb = true;
-                ub = true;
-                init = true;
-                res = true;
-                mult = true;
+                printed_cols = [obj.vector.numerical_properties, obj.vector.numerical_outputs, "sym"];
             else
-                if any(ismember(lower(varargin), 'sym'))
-                    sym = true;
-                end
-                if any(ismember(lower(varargin), 'lb'))
-                    lb = true;
-                end
-                if any(ismember(lower(varargin), 'ub'))
-                    ub = true;
-                end
-                if any(ismember(lower(varargin), 'init'))
-                    init = true;
-                end
-                if any(ismember(lower(varargin), 'res'))
-                    res = true;
-                end
-                if any(ismember(lower(varargin), 'mult'))
-                    mult = true;
-                end
+                printed_cols = [varargin{:}];
             end
 
             % Generate header
             header = 'i\t\t';
-            if lb
-                header = [header 'lb\t\t'];
-            end
-            if ub
-                header = [header 'ub\t\t'];
-            end
-            if init
-                header = [header 'init\t\t'];
-            end
-            if res
-                header = [header 'res\t\t'];
-            end
-            if mult
-                header = [header 'mult\t\t'];
-            end
-            if sym
-                header = [header 'sym\t\t'];
+            for name=printed_cols
+                header = [header, char(name), '\t\t'];
             end
             header = [header '\n'];
+            fprintf(header);
 
             % iterate over all requested values
             indices = sort([obj.indices{:}]);
-            output = header;
+            output = [];
             for ii=indices
                 pline = [num2str(ii) '\t\t'];
-                if lb
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.lb(ii))];
-                end
-                if ub
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.ub(ii))];
-                end
-                if init
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.init(ii))];
-                end
-                if res
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.res(ii))];
-                end
-                if mult
-                    pline = [pline sprintf('%-8.5g\t', obj.vector.mult(ii))];
-                end
-                if sym
-                    pline = [pline char(formattedDisplayText(obj.vector.sym(ii)))];
+                for name=printed_cols
+                    if strcmp(name,"sym")
+                        pline = [pline char(formattedDisplayText(obj.sym(ii)))];
+                    else
+                        vec = obj.vector.numerical_vectors.(name);
+                        pline = [pline sprintf('%-8.5g\t', vec(ii))];
+                    end
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
@@ -185,6 +83,29 @@ classdef Variable < handle &...
     end
 
     methods (Access=protected)
+        function varargout = dotReference(obj,index_op)
+            name = index_op(1).Name;
+            if ~ismember(name,[obj.vector.numerical_properties, obj.vector.numerical_outputs])
+                error(['numerical vector ' name ' is does not exist for this vector'])
+            end
+            if ~isscalar(index_op)
+                % TODO(@anton) better error here
+                error('Compound indexing is not supported')
+            end
+            vec = obj.vector.(name);
+            out = cellfun(@(x) vec(x), obj.indices, 'uni', false);
+            out = permute(out, ndims(out):-1:1);
+            varargout{1} = [out{:}];
+        end
+
+        function obj = dotAssign(obj,index_op,varargin)
+            error('Assigning to unindexed variable is not supported')
+        end
+
+        function n = dotListLength(obj,index_op,indexContext)
+            n=1;
+        end
+        
         function varargout = parenReference(obj, index_op)
             if obj.depth ~= length(index_op(1).Indices)
                 err.message = sprintf(['You are subscripting a variable using ' num2str(length(index_op(1).Indices)) ' subscripts but this variable expects ' num2str(obj.depth) ' subscripts.']);
@@ -213,29 +134,17 @@ classdef Variable < handle &...
                 error(err);
             end
             if isscalar(index_op)
-                symbolics = cellfun(@(x) obj.vector.sym(x), obj.indices, 'uni', false);
-                out = squeeze(symbolics(adj_ind{:}));
+                symbolics = cellfun(@(x) obj.vector.sym(x), obj.indices(adj_ind{:}), 'uni', false);
+                out = squeeze(symbolics);
             else
                 if index_op(2).Type == 'Dot'
-                    switch(index_op(2).Name)
-                      case "lb"
-                        lb = cellfun(@(x) obj.vector.lb(x), obj.indices, 'uni', false);
-                        out = squeeze(lb(adj_ind{:}));
-                      case "ub"
-                        ub = cellfun(@(x) obj.vector.ub(x), obj.indices, 'uni', false);
-                        out = squeeze(ub(adj_ind{:}));
-                      case "init"
-                        init = cellfun(@(x) obj.vector.init(x), obj.indices, 'uni', false);
-                        out = squeeze(init(adj_ind{:}));
-                      case "res"
-                        res = cellfun(@(x) obj.vector.res(x), obj.indices, 'uni', false);
-                        out = squeeze(res(adj_ind{:}));
-                      case "mult"
-                        mult = cellfun(@(x) obj.vector.mult(x), obj.indices, 'uni', false);
-                        out = squeeze(mult(adj_ind{:}));
-                      otherwise
-                        error('vdx only supports getting lb, ub, init, res, or mult for a variable via dot indexing');
+                    if ~ismember(index_op(2).Name, [obj.vector.numerical_properties, obj.vector.numerical_outputs])
+                        % TODO(@anton) better error
+                        error('Attempt to access unsupported property for this vector type')
                     end
+                    num_vec = obj.vector.numerical_vectors.(index_op(2).Name);
+                    num = cellfun(@(x) num_vec(x), obj.indices, 'uni', false);
+                    out = squeeze(num(adj_ind{:}));
                 else
                     error('unsupported indexing');
                     % TODO(@anton) better error here.
@@ -266,93 +175,38 @@ classdef Variable < handle &...
                 arg = varargin{1};
                 % allow for multi index variable creation
                 if is_index_scalar(index_op(1).Indices) % A single scalar variable     
-                    symbolic = arg{1}; % TODO this living here implies we should move other handeling out of 'add_variable'
-                    if iscell(symbolic) && isa(symbolic{1}, 'casadi.Function')
-                        varargs = symbolic(3:end);
-                        arg_group = vdx.VariableGroup(symbolic{2}, varargs);
-                        fun = symbolic{1};
-                        fargs = arg_group{index_op(1).Indices{:}};
-                        symbolic = fun(fargs{:});
-                        arg{1} = symbolic;
-                    end
-                    indices = obj.vector.add_variable(arg{:});
+                    indices = obj.vector.add_variable([], arg{:});
                     adj_ind = index_adjustment(index_op.Indices);
                     obj.indices{adj_ind{:},1} = indices;
                 elseif is_index_logical_array(index_op(1).Indices) % A boolean array representing where variables should be created
                     error('indexing via logical array not yet supported')
                 else % Assume we want to assign multiple values
                     inorderlst = all_combinations(index_op.Indices{:});
-                    % Check first argument and adjust naming
-                    x = arg{1};
-                    is_fun = false;
-                    if iscell(x)
-                        if isa(x{1}, 'casadi.Function')
-                            is_fun = true;
-                            varargs = x(3:end);
-                            arg_group = vdx.VariableGroup(x{2}, varargs{:});
-                            fun = x{1};
-                        else
-                            name = x{1}; n = x{2};
-                        end
-                    else % assume it is an SX or MX
-                        name = x.name; n = size(1, x);
-                    end
 
                     % create vars and assign.
                     for ii=1:size(inorderlst)
                         curr = inorderlst(ii,:);
                         curr_cell = num2cell(curr);
                         adj_ind = index_adjustment(curr_cell);
-                        if is_fun
-                            fargs = arg_group{curr_cell{:}};
-                            symbolic = fun(fargs{:});
-                            arg{1} = symbolic;
-                        else
-                            arg{1} = {[name index_string(curr)], n};
-                        end
-                        % add variable
-                        indices = obj.vector.add_variable(arg{:});
+                        indices = obj.vector.add_variable(curr, arg{:});
+                        adj_ind = index_adjustment(curr_cell);
                         obj.indices{adj_ind{:},1} = indices;
                     end
                 end
             else
                 if index_op(2).Type == 'Dot'
                     if is_index_scalar(index_op(1).Indices)
-                        switch(index_op(2).Name)
-                          case "lb"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.lb(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "ub"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.ub(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "init"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.init(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "mult"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.mult(obj.indices{adj_ind{:}}) = varargin{1};
-                          otherwise
-                            error('vdx only supports assigning lb, ub, mult, or init for a variable via dot indexing');
+                        if ~ismember(index_op(2).Name, [obj.vector.numerical_properties])
+                            % TODO(@anton) better error
+                            error('Attempt to assign to unsupported property for this vector type')
                         end
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        obj.vector.numerical_vectors.(index_op(2).Name)(obj.indices{adj_ind{:}}) = varargin{1};
                     else
                         % TODO (@anton) preempt wrong size with a good error
                         % TODO (@anton) allow for structured right hand side
-                        switch(index_op(2).Name)
-                          case "lb"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.lb(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "ub"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.ub(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "init"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.init(obj.indices{adj_ind{:}}) = varargin{1};
-                          case "mult"
-                            adj_ind = index_adjustment(index_op(1).Indices);
-                            obj.vector.mult(obj.indices{adj_ind{:}}) = varargin{1};
-                          otherwise
-                            error('vdx only supports assigning lb, ub, mult, or init for a variable via dot indexing');
-                        end
+                        adj_ind = index_adjustment(index_op(1).Indices);
+                        obj.vector.numerical_vectors.(index_op(2).Name)(obj.indices{adj_ind{:}}) = varargin{1};
                     end
                 else
                     error('unsupported indexing');
@@ -373,6 +227,40 @@ classdef Variable < handle &...
             cp = copyElement@matlab.mixin.Copyable(obj);
 
             cp.vector = [];
+        end
+
+        function propgrp = getPropertyGroups(obj)
+            gTitle1 = 'Numeric properties';
+            gTitle2 = 'Numeric Outputs';
+            propList1 = struct;
+            for name=obj.vector.numerical_properties
+                propList1.(name) = [];% TODO(@anton) better custom display here
+            end
+            propList2 = struct;
+            for name=obj.vector.numerical_outputs
+                propList2.(name) = [];% TODO(@anton) better custom display here
+            end
+            propgrp(1) = matlab.mixin.util.PropertyGroup(propList1,gTitle1);
+            propgrp(2) = matlab.mixin.util.PropertyGroup(propList2,gTitle2);
+        end
+
+        function displayScalarObject(obj)
+            className = matlab.mixin.CustomDisplay.getClassNameForHeader(obj);
+            scalarHeader = [className];
+            header = sprintf('%s\n',scalarHeader);
+            disp(header)
+            propgroup = getPropertyGroups(obj);
+            matlab.mixin.CustomDisplay.displayPropertyGroups(obj,propgroup)
+        end
+
+        function displayNonScalarObject(obj)
+            dimStr = matlab.mixin.CustomDisplay.convertDimensionsToString(obj);
+            cName = matlab.mixin.CustomDisplay.getClassNameForHeader(obj);
+            headerStr = [dimStr,' ',cName];
+            header = sprintf('%s\n',headerStr);
+            disp(header)
+            propgroup = getPropertyGroups(obj);
+            matlab.mixin.CustomDisplay.displayPropertyGroups(obj,propgroup)
         end
     end
 
