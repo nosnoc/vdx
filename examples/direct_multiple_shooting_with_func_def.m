@@ -44,7 +44,7 @@ warning off vdx:indexing:dot_reference_returns_vdx_var % Turn off warnings for a
 % create a problem
 prob = vdx.Problem('casadi_type', 'MX');
 
-prob.p.p = {P, -inf, inf, 1};
+prob.p.p = {P, 1};
 prob.w.x(0) = {{'X_0', 2},[0;1], [0;1], [0;1]};
 prob.w.x(1:N) = {{'X', 2}, [-0.25;-inf], [inf;inf], [0;0]};
 prob.w.u(1:N) = {{'U', 1},-1,1,0};
@@ -59,7 +59,7 @@ for k=1:N
     Uk = prob.w.u(k);
 
     % Integrate till the end of the interval
-    Fk = F('x0', Xk, 'u', Uk, 'p', prob.p.p(0));
+    Fk = F('x0', Xk, 'u', Uk, 'p', prob.p.p());
     prob.f=prob.f+Fk.qf;
 
     % New NLP variable for state at end of interval

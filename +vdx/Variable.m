@@ -134,8 +134,8 @@ classdef Variable < handle &...
                 error(err);
             end
             if isscalar(index_op)
-                symbolics = cellfun(@(x) obj.vector.sym(x), obj.indices, 'uni', false);
-                out = squeeze(symbolics(adj_ind{:}));
+                symbolics = cellfun(@(x) obj.vector.sym(x), obj.indices(adj_ind{:}), 'uni', false);
+                out = squeeze(symbolics);
             else
                 if index_op(2).Type == 'Dot'
                     if ~ismember(index_op(2).Name, [obj.vector.numerical_properties, obj.vector.numerical_outputs])

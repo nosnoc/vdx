@@ -56,9 +56,9 @@ classdef InclusionProblem < vdx.Problem
             if obj.opts.elastic_ell_inf
                 obj.w.s_elastic = {{'s_elastic',1},0,inf,0};
             end
-            obj.p.sigma = {{'sigma',1},0,inf,0};
-            obj.p.gamma_h = {{'gamma_h',1},0,inf,1e-1};
-            obj.p.T = {{'T',1},0,inf,data.T};
+            obj.p.sigma = {{'sigma',1},0};
+            obj.p.gamma_h = {{'gamma_h',1},1e-1};
+            obj.p.T = {{'T',1},data.T};
 
             % other derived values
             t_stage = data.T/data.N_stages;
@@ -105,9 +105,9 @@ classdef InclusionProblem < vdx.Problem
             % other derived values
             if obj.opts.use_fesd
                 t_stage = obj.p.T()/obj.data.N_stages;
-                h0 = obj.p.T().init/(obj.data.N_stages*obj.data.N_fe);
+                h0 = obj.p.T().val/(obj.data.N_stages*obj.data.N_fe);
             else
-                h0 = obj.p.T().init/(obj.data.N_stages*obj.data.N_fe);
+                h0 = obj.p.T().val/(obj.data.N_stages*obj.data.N_fe);
             end
             
             if obj.opts.elastic_ell_inf

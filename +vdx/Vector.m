@@ -440,10 +440,12 @@ classdef Vector < handle &...
                         name = [sym{1} index_string(p.Results.index)];
                         sym = define_casadi_symbolic(obj.casadi_type, name, sym{2});
                     elseif isa(sym{1}, 'casadi.Function')
-                        arg_group = vdx.VariableGroup(sym{2}, varargs);
+                        varargs = sym(3:end);
+                        arg_group = vdx.VariableGroup(sym{2}, varargs{:});
                         fun = sym{1};
                         inds = num2cell(p.Results.index);
-                        sym = fun(arg_group(inds{:}));
+                        sym_args = arg_group{inds{:}};
+                        sym = fun(sym_args{:});
                     else
                         error("Incorrect type")
                     end 

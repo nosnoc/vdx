@@ -4,7 +4,7 @@ classdef ParameterVector < vdx.Vector
     end
     properties (Constant, Hidden)
         numerical_properties = ["val"];
-        numerical_outputs = ["lambda"];
+        numerical_outputs = ["mult"];
 
         allow_nonscalar_symbolics = false;
         allow_nonsymbolic_assignment = true;

@@ -11,11 +11,11 @@ function [success,stats] = homotopy(prob,sigma_0,comp_tol,slope)
     sigma_k = sigma_0;
     all_stats = [];
     while sigma_k >= comp_tol
-        prob.p.sigma().init = sigma_k;
+        prob.p.sigma().val = sigma_k;
         stats = prob.solve();
         prob.w.init = prob.w.res;
         all_stats = [all_stats, stats];
-        comp_res = full(prob.comp_res_fun(prob.w.res,prob.p.init));
+        comp_res = full(prob.comp_res_fun(prob.w.res,prob.p.val));
         if stats.return_status == "Search_Direction_Becomes_Too_Small"
             stats.success = 1;
         end

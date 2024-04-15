@@ -81,17 +81,17 @@ classdef Problem < handle &...
                 'ubx', obj.w.ub,...
                 'lbg', obj.g.lb,...
                 'ubg', obj.g.ub,...
-                'lam_g0', obj.g.init_lambda,...% TODO(@anton) perhaps we use init instead of mult.
-                'lam_x0', obj.w.init_lambda,...
+                'lam_g0', obj.g.init_mult,...% TODO(@anton) perhaps we use init instead of mult.
+                'lam_x0', obj.w.init_mult,...
                 'p', obj.p.val);
             if ~obj.solver.stats.success
                 %warning("failed to converge")
             end
             obj.w.res = full(nlp_results.x);
-            obj.w.lambda = full(nlp_results.lam_x);
+            obj.w.mult = full(nlp_results.lam_x);
             obj.g.eval = full(nlp_results.g);
-            obj.g.lambda = full(nlp_results.lam_g);
-            obj.p.lambda = full(nlp_results.lam_p);
+            obj.g.mult = full(nlp_results.lam_g);
+            obj.p.mult = full(nlp_results.lam_p);
             obj.f_result = full(nlp_results.f);
             stats = obj.solver.stats;
         end
