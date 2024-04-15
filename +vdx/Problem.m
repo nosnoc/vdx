@@ -100,7 +100,7 @@ classdef Problem < handle &...
             obj.w.violation = max(w_lb_viol, w_ub_viol);
             g_lb_viol = max(obj.g.lb - obj.g.eval, 0);
             g_ub_viol = max(obj.g.eval - obj.g.ub, 0);
-            obj.w.violation = max(g_lb_viol, g_ub_viol);
+            obj.g.violation = max(g_lb_viol, g_ub_viol);
             
             stats = obj.solver.stats;
         end
