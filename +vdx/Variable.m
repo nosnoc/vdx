@@ -161,6 +161,12 @@ classdef Variable < handle &...
         function obj = parenAssign(obj,index_op,varargin)
             if isempty(obj.depth)
                 obj.depth = length(index_op(1).Indices);
+                if obj.depth == 0
+                    size_args = {0,1};
+                else
+                    size_args = num2cell([zeros(obj.depth, 1);1]);
+                end
+                obj.indices = cell(size_args{:});
             end
             if obj.depth ~= length(index_op(1).Indices)
                 err.message = sprintf(['You are assigning to variable using ' num2str(length(index_op(1).Indices)) ' subscripts but this variable expects ' num2str(obj.depth) ' subscripts.']);
@@ -184,7 +190,7 @@ classdef Variable < handle &...
                     inorderlst = all_combinations(index_op.Indices{:});
 
                     % create vars and assign.
-                    for ii=1:size(inorderlst)
+                    for ii=1:size(inorderlst, 1)
                         curr = inorderlst(ii,:);
                         curr_cell = num2cell(curr);
                         adj_ind = index_adjustment(curr_cell);

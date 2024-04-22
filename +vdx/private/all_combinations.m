@@ -14,12 +14,9 @@ function X = all_combinations(varargin)
     end
     X = zeros(prod(sizeThisSet),numSets);
     for i = 1:size(X,1)
-        
         ixVect = cell(length(sizeThisSet),1);
-        [ixVect{:}] = ind2sub(sizeThisSet,i);
-        ixVect = [ixVect{:}];
-        for j = 1:numSets,
-            X(i,j) = varargin{j}(ixVect(j));
-        end
+        [ixVect{:}] = ind2sub(flip(sizeThisSet),i);
+        ixVect = flip([ixVect{:}]);
+        X(i,:) = ixVect;
     end
 end
