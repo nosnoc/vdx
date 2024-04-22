@@ -12,22 +12,15 @@ classdef Mpcc < vdx.Problem
         end
 
         function create_solver(obj, options, plugin)
-            w = obj.w(:);
-            g = obj.g(:);
-            G = obj.G(:);
-            H = obj.H(:);
-            p = obj.p(:);
-            f = obj.f;
-
             if ~exist('plugin')
-                plugin = 'relaxation';
+                plugin = 'scholtes_ineq';
             end
 
-            mpcc_struct = struct('x', w, 'g', g, 'p', p, 'G', G, 'H', H, 'f', f);
+            mpcc_struct = obj.to_casadi_struct();
             
             % TODO(@anton) figure out if we want to create a standard repository for mpcc solvers or if they should live in nosnoc.
             %              My current thought is to move it out so we don't have circular dependency here. (alternatively move this into nosnoc?)
-            obj.solver = nosnoc.solver.mpccsol('name', 'relaxation', mpcc_struct, options);
+            obj.solver = nosnoc.solver.mpccsol('Mpcc solver', plugin, mpcc_struct, options);
         end
 
         function stats = solve(obj)
@@ -38,30 +31,40 @@ classdef Mpcc < vdx.Problem
                 'ubg', obj.g.ub,...
                 'lam_g0', obj.g.mult,...% TODO(@anton) perhaps we use init instead of mult.
                 'lam_x0', obj.w.mult,...
-                'p', obj.p.init);
+                'p', obj.p.val);
             if ~obj.solver.stats.success
                 %warning("failed to converge")
             end
             obj.w.res = full(mpcc_results.x);
             obj.w.mult = full(mpcc_results.lam_x);
-            obj.g.res = full(mpcc_results.g);
+            obj.g.eval = full(mpcc_results.g);
             obj.g.mult = full(mpcc_results.lam_g);
-            obj.p.mult = full(mpcc_results.lam_p);
+            % TODO(@anton) can we figure out parameter multipliers correctly from homotopy?
+            %obj.p.mult = full(mpcc_results.lam_p);
             obj.f_result = full(mpcc_results.f);
-            obj.G.res = full(mpcc_results.G);
-            obj.H.res = full(mpcc_results.H);
+            obj.G.eval = full(mpcc_results.G);
+            obj.H.eval = full(mpcc_results.H);
             % TODO(@anton) multipliers for G and H
+
+            % Calculate violations:
+            w_lb_viol = max(obj.w.lb - obj.w.res, 0);
+            w_ub_viol = max(obj.w.res - obj.w.ub, 0);
+            obj.w.violation = max(w_lb_viol, w_ub_viol);
+            g_lb_viol = max(obj.g.lb - obj.g.eval, 0);
+            g_ub_viol = max(obj.g.eval - obj.g.ub, 0);
+            obj.g.violation = max(g_lb_viol, g_ub_viol);
+
             stats = obj.solver.stats;
         end
 
         function mpcc_struct = to_casadi_struct(obj)
             mpcc_struct = struct;
-            mpcc_struct.x = mpcc.w.sym;
-            mpcc_struct.g = mpcc.g.sym;
-            mpcc_struct.p = mpcc.p.sym;
-            mpcc_struct.G = mpcc.G.sym;
-            mpcc_struct.H = mpcc.H.sym;
-            mpcc_struct.f = mpcc.f;
+            mpcc_struct.x = obj.w.sym;
+            mpcc_struct.g = obj.g.sym;
+            mpcc_struct.p = obj.p.sym;
+            mpcc_struct.G = obj.G.sym;
+            mpcc_struct.H = obj.H.sym;
+            mpcc_struct.f = obj.f;
         end
     end
 
