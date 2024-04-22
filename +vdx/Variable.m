@@ -69,7 +69,8 @@ classdef Variable < handle &...
                 pline = [num2str(ii) '\t\t'];
                 for name=printed_cols
                     if strcmp(name,"sym")
-                        pline = [pline char(formattedDisplayText(obj.sym(ii)))];
+                        vec = obj.vector.sym;
+                        pline = [pline char(formattedDisplayText(vec(ii)))];
                     else
                         vec = obj.vector.numerical_vectors.(name);
                         pline = [pline sprintf('%-8.5g\t', vec(ii))];
@@ -86,7 +87,7 @@ classdef Variable < handle &...
         function varargout = dotReference(obj,index_op)
             name = index_op(1).Name;
             if ~ismember(name,[obj.vector.numerical_properties, obj.vector.numerical_outputs])
-                error(['numerical vector ' name ' is does not exist for this vector'])
+                error(['numerical vector ' char(name) ' is does not exist for this vector'])
             end
             if ~isscalar(index_op)
                 % TODO(@anton) better error here
