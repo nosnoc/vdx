@@ -176,14 +176,14 @@ classdef Vector < handle &...
             d_vars = vars_by_depth{1};
             for jj=1:numel(d_vars)
                 var = obj.variables.(d_vars{jj});
-                n_new_sym = length(new_sym);
+                n_new_sym = size(new_sym,1);
                 v_sym = var();
                 new_sym = vertcat(new_sym, v_sym);
                 for name=[obj.numerical_properties, obj.numerical_outputs]
                     new_numerics.(name) = vertcat(new_numerics.(name), var().(name));
                 end
 
-                n = length(v_sym);
+                n = size(v_sym, 1);
                 indices = (n_new_sym+1):(n_new_sym+n);
                 var.indices{1} = indices;
             end
@@ -201,14 +201,14 @@ classdef Vector < handle &...
                     curr_for_dim = num2cell(curr(1:dim));
                     for jj=1:numel(d_vars)
                         var = obj.variables.(d_vars{jj});
-                        n_new_sym = length(new_sym);
+                        n_new_sym = size(new_sym,1);
                         v_sym = var(curr_for_dim{:});
                         new_sym = vertcat(new_sym, v_sym);
                         for name=[obj.numerical_properties, obj.numerical_outputs]
                             new_numerics.(name) = vertcat(new_numerics.(name), var(curr_for_dim{:}).(name));
                         end
                         
-                        n = length(v_sym);
+                        n = size(v_sym,1);
                         indices = (n_new_sym+1):(n_new_sym+n);
                         curr_for_dim_adj = num2cell(curr(1:dim)+1);
                         var.indices{curr_for_dim_adj{:}} = indices;
