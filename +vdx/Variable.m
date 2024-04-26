@@ -144,8 +144,8 @@ classdef Variable < handle &...
                         error('Attempt to access unsupported property for this vector type')
                     end
                     num_vec = obj.vector.numerical_vectors.(index_op(2).Name);
-                    num = cellfun(@(x) num_vec(x), obj.indices, 'uni', false);
-                    out = squeeze(num(adj_ind{:}));
+                    num = cellfun(@(x) num_vec(x), obj.indices(adj_ind{:}), 'uni', false);
+                    out = squeeze(num);
                 else
                     error('unsupported indexing');
                     % TODO(@anton) better error here.
@@ -188,16 +188,33 @@ classdef Variable < handle &...
                 elseif is_index_logical_array(index_op(1).Indices) % A boolean array representing where variables should be created
                     error('indexing via logical array not yet supported')
                 else % Assume we want to assign multiple values
-                    inorderlst = all_combinations(index_op.Indices{:});
+                    if true && iscell(arg{1}) && ischar(arg{1}{1}) % Fast variable creation sacrificing naming
+                        inorderlst = all_combinations(index_op.Indices{:});
+                        n_args = size(inorderlst, 1);
+                        n_var = arg{1}{2};
+                        arg{1}{2} = arg{1}{2}*n_args;
+                        all_indices = obj.vector.add_variable_fast(n_args, arg{:});
+                        
+                        % create vars and assign.
+                        for ii=1:n_args
+                            curr = inorderlst(ii,:);
+                            curr_cell = num2cell(curr);
+                            adj_ind = index_adjustment(curr_cell);
+                            indices = all_indices(1+(((ii-1)*n_var):(ii*n_var-1)));
+                            obj.indices{adj_ind{:},1} = indices;
+                        end
+                    else 
+                        inorderlst = all_combinations(index_op.Indices{:});
 
-                    % create vars and assign.
-                    for ii=1:size(inorderlst, 1)
-                        curr = inorderlst(ii,:);
-                        curr_cell = num2cell(curr);
-                        adj_ind = index_adjustment(curr_cell);
-                        indices = obj.vector.add_variable(curr, arg{:});
-                        adj_ind = index_adjustment(curr_cell);
-                        obj.indices{adj_ind{:},1} = indices;
+                        % create vars and assign.
+                        for ii=1:size(inorderlst, 1)
+                            curr = inorderlst(ii,:);
+                            curr_cell = num2cell(curr);
+                            adj_ind = index_adjustment(curr_cell);
+                            indices = obj.vector.add_variable(curr, arg{:});
+                            adj_ind = index_adjustment(curr_cell);
+                            obj.indices{adj_ind{:},1} = indices;
+                        end
                     end
                 end
             else

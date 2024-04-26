@@ -12,6 +12,9 @@ classdef Vector < handle &...
         %
         %:type: casadi.SX|casadi.MX
         sym
+        
+        % Casadi type
+        casadi_type
     end
     
     properties (Access=private)
@@ -20,9 +23,6 @@ classdef Vector < handle &...
 
         % Internal struct of index tracking variables
         variables struct
-
-        % Casadi type
-        casadi_type
     end
 
     properties (Access={?vdx.Variable,?vdx.Vector})
@@ -165,26 +165,20 @@ classdef Vector < handle &...
             % We subtract 1 to get the 0 indexing correct :)
             inorderlst = all_combinations(indices{:})-1;
 
-            % new vectors.
-            new_sym = [];
-            new_numerics = struct;
-            for name=[obj.numerical_properties, obj.numerical_outputs]
-                new_numerics.(name) = [];
-            end
-
+            order_indices = zeros(size(obj.sym));
+            n_new = 0;
+            
             % First re-normalize 0 dimensional vars (i.e indicies 1x1)
             d_vars = vars_by_depth{1};
             for jj=1:numel(d_vars)
                 var = obj.variables.(d_vars{jj});
-                n_new_sym = size(new_sym,1);
-                v_sym = var();
-                new_sym = vertcat(new_sym, v_sym);
-                for name=[obj.numerical_properties, obj.numerical_outputs]
-                    new_numerics.(name) = vertcat(new_numerics.(name), var().(name));
-                end
-
-                n = size(v_sym, 1);
-                indices = (n_new_sym+1):(n_new_sym+n);
+                
+                ind = var.indices{1};
+                n = numel(ind);
+                indices = (n_new+1):(n_new+n);
+                n_new = n_new + n;
+                order_indices(indices) = ind;
+                
                 var.indices{1} = indices;
             end
             
@@ -201,22 +195,22 @@ classdef Vector < handle &...
                     curr_for_dim = num2cell(curr(1:dim));
                     for jj=1:numel(d_vars)
                         var = obj.variables.(d_vars{jj});
-                        n_new_sym = size(new_sym,1);
-                        v_sym = var(curr_for_dim{:});
-                        new_sym = vertcat(new_sym, v_sym);
-                        for name=[obj.numerical_properties, obj.numerical_outputs]
-                            new_numerics.(name) = vertcat(new_numerics.(name), var(curr_for_dim{:}).(name));
-                        end
-                        
-                        n = size(v_sym,1);
-                        indices = (n_new_sym+1):(n_new_sym+n);
                         curr_for_dim_adj = num2cell(curr(1:dim)+1);
+                        
+                        ind = var.indices{curr_for_dim_adj{:}};
+                        n = numel(ind);
+                        indices = (n_new+1):(n_new+n);
+                        n_new = n_new + n;
+                        order_indices(indices) = ind;
+                        
                         var.indices{curr_for_dim_adj{:}} = indices;
                     end
                 end
             end
-            obj.sym = new_sym;
-            obj.numerical_vectors = new_numerics;
+            obj.sym = obj.sym(order_indices);
+            for name=obj.numerical_properties
+                obj.numerical_vectors.(name) = obj.numerical_vectors.(name)(order_indices);
+            end
         end
 
         function add_variable_group(obj, name, vars, varargin)
@@ -380,6 +374,67 @@ classdef Vector < handle &...
             for name=obj.numerical_properties
                 if length(p.Results.(name)) == 1
                     numeric_vals.(name) = numeric_vals.(name) * ones(n,1);
+                end
+            end
+            
+            lens = [size(symbolic,1)];
+            for name=obj.numerical_properties
+                lens = [lens, size(numeric_vals.(name), 1)];
+            end
+            if ~all(lens == lens(1))
+                % TODO(@anton) better error message
+                error("mismatched dims")
+            end
+
+            n_sym = size(obj.sym, 1);
+
+            obj.sym = vertcat(obj.sym, symbolic);
+            for name=obj.numerical_properties
+                obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); numeric_vals.(name)];
+            end
+
+            % initialize results and multipliers to zero
+            % TODO(@anton) is there a better descision than this?
+            for name=obj.numerical_outputs
+                obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); zeros(n,1)];
+            end
+            indices = (n_sym+1):(n_sym+n);
+        end
+
+        function indices = add_variable_fast(obj, n_args, symbolic, varargin)
+        % Adds a :class:`vdx.Variable` to the internal symbolic and numeric vectors.
+            p = inputParser;
+            addRequired(p, 'obj');
+            addRequired(p, 'symbolic');
+            for name=obj.numerical_properties
+                default = obj.numerical_defaults.(name);
+                addOptional(p, name, default);
+            end
+            parse(p, obj, symbolic, varargin{:});
+
+            symbolic = p.Results.symbolic;
+            numeric_vals = struct;
+            for name=obj.numerical_properties
+                numeric_vals.(name) = p.Results.(name);
+            end
+
+            % Check that symbolic is valid
+            if iscell(symbolic) && ~isa(symbolic{1}, 'casadi.Function') && ~obj.allow_nonsymbolic_assignment
+                % TODO better error
+                error(['This vector of class ' class(obj) ' does not allow for {name, size} form of assignment.'])
+            end
+            % TODO more checks here
+            
+            % Handle non-symbolic input as (name, size) pair
+            symbolic = obj.eval_symbolic(symbolic);
+
+            % Get size and populate possibly empty values
+            n = size(symbolic, 1);
+            for name=obj.numerical_properties
+                if length(p.Results.(name)) == 1
+                    numeric_vals.(name) = numeric_vals.(name) * ones(n,1);
+                else
+                    numeric_vals.(name) = repmat(numeric_vals.(name), n_args, 1);
                 end
             end
             
