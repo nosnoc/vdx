@@ -152,11 +152,15 @@ classdef Variable < handle &...
                 end
             end
             if isscalar(out)
-                varargout{1} = out{1};
+                out = out{1};
             else
                 out = permute(out, ndims(out):-1:1);
-                varargout{1} = [out{:}];
+                out = [out{:}];
             end
+            if numel(out) == 0
+                out = [];
+            end
+            varargout{1} = out;
         end
 
         function obj = parenAssign(obj,index_op,varargin)
