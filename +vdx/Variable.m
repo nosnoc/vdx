@@ -233,8 +233,14 @@ classdef Variable < handle &...
                     else
                         % TODO (@anton) preempt wrong size with a good error
                         % TODO (@anton) allow for structured right hand side
-                        adj_ind = index_adjustment(index_op(1).Indices);
-                        obj.vector.numerical_vectors.(index_op(2).Name)(obj.indices{adj_ind{:}}) = varargin{1};
+                        inorderlst = all_combinations(index_op(1).Indices{:});
+                        n_args = size(inorderlst, 1);
+                        for ii=1:n_args
+                            curr = inorderlst(ii,:);
+                            curr_cell = num2cell(curr);
+                            adj_ind = index_adjustment(curr_cell);
+                            obj.vector.numerical_vectors.(index_op(2).Name)(obj.indices{adj_ind{:}}) = varargin{1};
+                        end
                     end
                 else
                     error('unsupported indexing');
