@@ -196,14 +196,16 @@ classdef Vector < handle &...
                     for jj=1:numel(d_vars)
                         var = obj.variables.(d_vars{jj});
                         curr_for_dim_adj = num2cell(curr(1:dim)+1);
-                        
-                        ind = var.indices{curr_for_dim_adj{:}};
-                        n = numel(ind);
-                        indices = (n_new+1):(n_new+n);
-                        n_new = n_new + n;
-                        order_indices(indices) = ind;
-                        
-                        var.indices{curr_for_dim_adj{:}} = indices;
+
+                        try
+                            ind = var.indices{curr_for_dim_adj{:}};
+                            n = numel(ind);
+                            indices = (n_new+1):(n_new+n);
+                            n_new = n_new + n;
+                            order_indices(indices) = ind;
+                            
+                            var.indices{curr_for_dim_adj{:}} = indices;
+                        end
                     end
                 end
             end
