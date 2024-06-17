@@ -475,7 +475,7 @@ classdef Vector < handle &...
 
             % Pile of ifs to handle different cases
             if isempty(p.Results.index)
-                if isempty(sym) || isa(sym, ['casadi.' obj.casadi_type])
+                if any(size(sym) == 0) || isa(sym, ['casadi.' obj.casadi_type])
                     % do nothing, directly pass through
                 elseif iscell(sym) && length(sym) == 2 &&...
                         ischar(sym{1}) && length(sym{2}) == 1 && isnumeric(sym{2}) && round(sym{2}) == sym{2}
