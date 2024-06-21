@@ -487,10 +487,12 @@ classdef Vector < handle &...
                 end
             else
                 if isa(sym, ['casadi.' obj.casadi_type])
-                    if sym.is_symbolic % if we can make the names of symbolics nice. However this may be bad if one wants to add single variable constraints in g instead of w.
-                        name = split(sym(1).name, '_');
-                        name = [name{1:end-1} index_string(p.Results.index)];
-                        sym = define_casadi_symbolic(obj.casadi_type, name, size(sym, 1));
+                    if sym.is_symbolic
+                        % if we can make the names of symbolics nice. However this may be bad if one wants to add single variable constraints in g instead of w.
+                        % This is bugged do nothing instead
+                        % name = split(sym(1).name, '_');
+                        % name = [name{1:end-1} index_string(p.Results.index)];
+                        % sym = define_casadi_symbolic(obj.casadi_type, name, size(sym, 1));
                     else
                         % pass through and do nothing
                     end

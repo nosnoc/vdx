@@ -101,9 +101,10 @@ classdef ConstraintVector < vdx.Vector
                         slacks{ii} = slack;
                         new_sym{ii} = [symbolic(ii)+slack];
                 end
-                obj.problem.w.(relax.slack_name)(indices{:}) = {vertcat(slacks{:}), 0, inf, 100};
+                slacks = vertcat(slacks{:});
+                obj.problem.w.(relax.slack_name)(indices{:}) = {slacks, -inf, inf, 0};
                 new_sym = vertcat(new_sym{:});
-                obj.problem.f = obj.problem.f + sum(new_sym.^2); % TODO weight
+                obj.problem.f = obj.problem.f + sum(slacks.^2); % TODO weight
 
                 indices = add_variable@vdx.Vector(obj, indices, new_sym, numeric_vals.lb, numeric_vals.ub, numeric_vals.init_mult);
               case vdx.RelaxationMode.ELL_INF % l_inf
