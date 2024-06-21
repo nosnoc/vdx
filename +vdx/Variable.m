@@ -186,7 +186,7 @@ classdef Variable < handle &...
                 arg = varargin{1};
                 % allow for multi index variable creation
                 if is_index_scalar(index_op(1).Indices) % A single scalar variable     
-                    indices = obj.vector.add_variable([], arg{:});
+                    indices = obj.vector.add_variable(index_op(1).Indices, arg{:});
                     adj_ind = index_adjustment(index_op.Indices);
                     obj.indices{adj_ind{:},1} = indices;
                 elseif is_index_logical_array(index_op(1).Indices) % A boolean array representing where variables should be created

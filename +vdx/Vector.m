@@ -18,11 +18,13 @@ classdef Vector < handle &...
     end
     
     properties (Access=private)
-        % pointer to parent problem
-        problem
-
         % Internal struct of index tracking variables
         variables struct
+    end
+
+    properties (Access=protected)
+        % pointer to parent problem
+        problem
     end
 
     properties (Access={?vdx.Variable,?vdx.Vector})
@@ -343,7 +345,7 @@ classdef Vector < handle &...
         end
     end
 
-    methods (Access={?vdx.Variable, ?vdx.VariableGroup})
+    methods (Access={?vdx.Variable, ?vdx.VariableGroup, ?vdx.ConstraintVector})
         function indices = add_variable(obj, indices, symbolic, varargin)
         % Adds a :class:`vdx.Variable` to the internal symbolic and numeric vectors.
             p = inputParser;
@@ -548,6 +550,9 @@ end
 
 function istring = index_string(indices)
     istring = '';
+    if iscell(indices)
+        indices = [indices{:}];
+    end
     for i=indices
         istring = [istring '_' num2str(i)];
     end
