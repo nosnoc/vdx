@@ -30,7 +30,7 @@ classdef ConstraintVector < vdx.Vector
     methods (Access={?vdx.Variable, ?vdx.VariableGroup, ?vdx.ConstraintVector})
         function indices = add_variable(obj, indices, symbolic, varargin)
             import casadi.*
-            if class(varargin{end}) ~= "vdx.RelaxationStruct"
+            if ~length(varargin) || class(varargin{end}) ~= "vdx.RelaxationStruct"
                 indices = add_variable@vdx.Vector(obj, indices, symbolic, varargin{:});
                 return
             end
