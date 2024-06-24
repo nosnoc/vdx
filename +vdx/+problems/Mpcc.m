@@ -66,6 +66,48 @@ classdef Mpcc < vdx.Problem
             mpcc_struct.H = obj.H.sym;
             mpcc_struct.f = obj.f;
         end
+
+        function print(obj, varargin)
+            w_out = obj.w.to_string(varargin{:});
+            p_out = obj.p.to_string(varargin{:});
+            g_out = obj.g.to_string(varargin{:});
+            G_out = obj.G.to_string(varargin{:});
+            H_out = obj.H.to_string(varargin{:});
+
+            n_longest = max([longest_line(w_out),
+                              longest_line(p_out),
+                              longest_line(g_out),
+                              longest_line(G_out),
+                              longest_line(H_out)]);
+
+            hline(1:n_longest) = '-';
+            hline = [hline '\n'];
+            
+            fprintf(hline);
+            fprintf("Primal Variables\n");
+            fprintf(hline);
+            fprintf(w_out);
+            fprintf(hline);
+            fprintf("Parameters\n");
+            fprintf(hline);
+            fprintf(p_out);
+            fprintf(hline);
+            fprintf("Constraints\n");
+            fprintf(hline);
+            fprintf(g_out);
+            fprintf(hline);
+            fprintf("G Complementarity\n");
+            fprintf(hline);
+            fprintf(G_out);
+            fprintf(hline);
+            fprintf("H Complementarity\n");
+            fprintf(hline);
+            fprintf(H_out);
+            fprintf(hline);
+            fprintf("Objective\n");
+            fprintf(hline);
+            print_casadi_vector(obj.f);
+        end
     end
 
     methods (Access=protected)

@@ -107,7 +107,7 @@ classdef Vector < handle &...
             header = '';
             header = [header sprintf('%-5s', 'i')];
             for name=printed_cols
-                header = [header, sprintf('| %-10s', name)];
+                header = [header, sprintf('| %-12s', name)];
             end
             header = [header '\n'];
 
@@ -121,7 +121,7 @@ classdef Vector < handle &...
                         pline = [pline '| ' char(formattedDisplayText(obj.sym(ii)))];
                     else
                         vec = obj.numerical_vectors.(name);
-                        pline = [pline sprintf('| %-10.5g', vec(ii))];
+                        pline = [pline sprintf('| %-12.5g', vec(ii))];
                     end
                 end
                 pline = [pline, '\n'];
