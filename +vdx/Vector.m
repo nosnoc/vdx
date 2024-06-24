@@ -85,39 +85,49 @@ classdef Vector < handle &...
         %
         % Available columns are the strings in the union of :attr:`numerical_properties` and :attr:`numerical_outputs`, which are passed as string arguments to this method.
         % Default prints all columns.
+            output = obj.to_string(varargin{:});
+            fprintf(output);
+        end
+
+        function output = to_string(obj, varargin)
             printed_cols = [];
             % Calculate which cols to print.
             if isempty(varargin)
                 printed_cols = [obj.numerical_properties, obj.numerical_outputs, "sym"];
             else
                 printed_cols = [varargin{:}];
+                if ismember("sym", printed_cols)
+                    idx = find(printed_cols == "sym");
+                    printed_cols(idx) = [];
+                    printed_cols = [printed_cols "sym"];
+                end
             end
 
             % Generate header
-            header = 'i\t\t';
+            header = '';
+            header = [header sprintf('%-5s', 'i')];
             for name=printed_cols
-                header = [header, char(name), '\t\t'];
+                header = [header, sprintf('| %-10s', name)];
             end
             header = [header '\n'];
-            fprintf(header);
 
             % iterate over all requested values
             n = size(obj.sym, 1);
-            output = [];
+            output = '';
             for ii=1:n
-                pline = [num2str(ii) '\t\t'];
+                pline = sprintf('%-5d', ii);
                 for name=printed_cols
                     if strcmp(name,"sym")
-                        pline = [pline char(formattedDisplayText(obj.sym(ii)))];
+                        pline = [pline '| ' char(formattedDisplayText(obj.sym(ii)))];
                     else
                         vec = obj.numerical_vectors.(name);
-                        pline = [pline sprintf('%-8.5g\t', vec(ii))];
+                        pline = [pline sprintf('| %-10.5g', vec(ii))];
                     end
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
             end
-            fprintf(output);
+            output = [header output];
         end
 
         function sort_by_index(obj)
