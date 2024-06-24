@@ -37,7 +37,7 @@ classdef ConstraintVector < vdx.Vector
             relax = varargin{end};
             % Exit early if relaxation mode none
             if relax.mode == vdx.RelaxationMode.NONE
-                indices = add_variable@vdx.Vector(obj, indices, symbolic, varargin{:});
+                indices = add_variable@vdx.Vector(obj, indices, symbolic, varargin{1:end-1});
                 return
             end
 
