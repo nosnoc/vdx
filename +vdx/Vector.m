@@ -228,12 +228,16 @@ classdef Vector < handle &...
         end
 
         function add_variable_group(obj, name, vars, varargin)
-            % Adds a :class:`vdx.VariableGroup` to this vector
+        % Adds a :class:`vdx.VariableGroup` to this vector
             if isfield(obj.variables,name)
                 error('Variable or VariableGroup with this name already exists')
             else
                 obj.variables.(name) = vdx.VariableGroup(vars, varargin{:});
             end
+        end
+
+        function has = has_var(obj, name)
+            has = isfield(obj.variables, char(name));
         end
     end
     
