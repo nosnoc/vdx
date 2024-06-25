@@ -11,5 +11,9 @@ classdef RelaxationStruct
             obj.slack_name = slack_name;
             obj.weight_name = weight_name;
         end
+
+        function is_relaxed = is_relaxed(obj)
+            is_relaxed = ~(obj.mode == vdx.RelaxationMode.NONE);
+        end
     end
 end
