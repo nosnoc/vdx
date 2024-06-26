@@ -500,7 +500,7 @@ classdef Vector < handle &...
                     error("Incorrect type")
                 end
             else
-                if isa(sym, ['casadi.' obj.casadi_type])
+                if any(size(sym) == 0) || isa(sym, ['casadi.' obj.casadi_type])
                     if sym.is_symbolic
                         % if we can make the names of symbolics nice. However this may be bad if one wants to add single variable constraints in g instead of w.
                         % This is bugged do nothing instead

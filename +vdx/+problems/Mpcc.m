@@ -2,6 +2,8 @@ classdef Mpcc < vdx.Problem
     properties (Access=public)
         G vdx.ConstraintVector
         H vdx.ConstraintVector
+
+        mpcc_results
     end
 
     methods (Access=public)
@@ -55,6 +57,7 @@ classdef Mpcc < vdx.Problem
             obj.g.violation = max(g_lb_viol, g_ub_viol);
 
             stats = obj.solver.stats;
+            obj.mpcc_results = mpcc_results;
         end
 
         function mpcc_struct = to_casadi_struct(obj)
