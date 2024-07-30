@@ -13,6 +13,10 @@ classdef Variable < handle &...
         vector
     end
 
+    properties (Hidden, SetAccess=private)
+        reorder_to_end = false
+    end
+
     properties (SetAccess=private)
         % Number of indices supported by this variable.
         %
@@ -298,6 +302,13 @@ classdef Variable < handle &...
         end
     end
 
+    methods
+        function set_is_terminal(obj, is_terminal)
+        % This only does anything for scalar variables
+            obj.reorder_to_end = is_terminal;
+        end
+    end
+    
     methods (Access=private)
         function unacceptable = unacceptable_indices(obj, adj_ind)
             sz = size(obj.indices);

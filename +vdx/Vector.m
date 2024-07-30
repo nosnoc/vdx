@@ -182,8 +182,13 @@ classdef Vector < handle &...
             
             % First re-normalize 0 dimensional vars (i.e indicies 1x1)
             d_vars = vars_by_depth{1};
+            terminal_vars = {};
             for jj=1:numel(d_vars)
                 var = obj.variables.(d_vars{jj});
+                if var.reorder_to_end
+                    terminal_vars = [terminal_vars, {var}];
+                    continue;
+                end
                 
                 ind = var.indices{1};
                 n = numel(ind);
@@ -221,6 +226,20 @@ classdef Vector < handle &...
                     end
                 end
             end
+
+            % put terminal vars at the end
+            for jj=1:numel(terminal_vars)
+                var = terminal_vars{jj};
+                
+                ind = var.indices{1};
+                n = numel(ind);
+                indices = (n_new+1):(n_new+n);
+                n_new = n_new + n;
+                order_indices(indices) = ind;
+                
+                var.indices{1} = indices;
+            end
+            
             obj.sym = obj.sym(order_indices);
             for name=obj.numerical_properties
                 obj.numerical_vectors.(name) = obj.numerical_vectors.(name)(order_indices);
