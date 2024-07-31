@@ -43,12 +43,12 @@ classdef Variable < handle &...
             sz = size(obj.indices);
             ind = sz(k)-1;
         end
-        
-        function output = print(obj, varargin)
-        % Pretty prints this variable with the specified columns.
-        %
-        % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
-        % Default prints all columns.
+
+        function output = to_string(obj, varargin)
+            % Pretty prints this variable with the specified columns.
+            %
+            % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
+            % Default outputs all columns.
 
             printed_cols = [];
             % Calculate which cols to print.
@@ -56,33 +56,47 @@ classdef Variable < handle &...
                 printed_cols = [obj.vector.numerical_properties, obj.vector.numerical_outputs, "sym"];
             else
                 printed_cols = [varargin{:}];
+                if ismember("sym", printed_cols)
+                    idx = find(printed_cols == "sym");
+                    printed_cols(idx) = [];
+                    printed_cols = [printed_cols "sym"];
+                end
             end
 
             % Generate header
-            header = 'i\t\t';
+            header = '';
+            header = [header sprintf('%-5s', 'i')];
             for name=printed_cols
-                header = [header, char(name), '\t\t'];
+                header = [header, sprintf('| %-12s', name)];
             end
             header = [header '\n'];
-            fprintf(header);
 
             % iterate over all requested values
             indices = sort([obj.indices{:}]);
             output = [];
             for ii=indices
-                pline = [num2str(ii) '\t\t'];
+                pline = sprintf('%-5d', ii);
                 for name=printed_cols
                     if strcmp(name,"sym")
                         vec = obj.vector.sym;
-                        pline = [pline char(formattedDisplayText(vec(ii)))];
+                        pline = [pline '| ' char(formattedDisplayText(vec(ii)))];
                     else
                         vec = obj.vector.numerical_vectors.(name);
-                        pline = [pline sprintf('%-8.5g\t', vec(ii))];
+                        pline = [pline sprintf('| %-12.5g', vec(ii))];
                     end
                 end
                 pline = [pline, '\n'];
                 output = [output pline];
             end
+            output = [header output];
+        end
+        
+        function print(obj, varargin)
+        % Pretty prints this variable with the specified columns.
+        %
+        % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
+        % Default prints all columns.
+            output = obj.to_string(varargin{:});
             fprintf(output);
         end
     end
