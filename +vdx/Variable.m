@@ -91,13 +91,14 @@ classdef Variable < handle &...
             output = [header output];
         end
         
-        function print(obj, varargin)
+        function dummy = print(obj, varargin)
         % Pretty prints this variable with the specified columns.
         %
         % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
         % Default prints all columns.
             output = obj.to_string(varargin{:});
             fprintf(output);
+            dummy = [];
         end
     end
 
