@@ -317,7 +317,7 @@ classdef Variable < handle &...
     end
 
     methods
-        function set_is_terminal(obj, is_terminal)
+        function is_terminal = set_is_terminal(obj, is_terminal)
         % This only does anything for scalar variables
             obj.reorder_to_end = is_terminal;
         end
