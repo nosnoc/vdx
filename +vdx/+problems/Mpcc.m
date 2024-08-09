@@ -111,6 +111,18 @@ classdef Mpcc < vdx.Problem
             fprintf(hline);
             print_casadi_vector(obj.f);
         end
+
+        function json = jsonencode(obj, varargin)
+            idx_struct = struct();
+
+            idx_struct.w = obj.w;
+            idx_struct.g = obj.g;
+            idx_struct.p = obj.p;
+            idx_struct.G = obj.G;
+            idx_struct.H = obj.H;
+            
+            json = jsonencode(idx_struct, varargin{:});
+        end
     end
 
     methods (Access=protected)

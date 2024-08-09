@@ -258,6 +258,18 @@ classdef Vector < handle &...
         function has = has_var(obj, name)
             has = isfield(obj.variables, char(name));
         end
+
+        function json = jsonencode(obj, varargin)
+            idx_struct = struct();
+
+            names = fields(obj.variables);
+            for ii=1:numel(names)
+                name = names{ii};
+                idx_struct.(name) = obj.variables.(name).indices;
+            end
+            
+            json = jsonencode(idx_struct, varargin{:});
+        end
     end
     
     methods (Access=protected)
