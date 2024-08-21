@@ -66,6 +66,8 @@ classdef Problem < handle &...
             if ~exist('plugin')
                 plugin = 'ipopt';
             end
+            
+            obj.finalize_assignments()
 
             casadi_nlp = obj.to_casadi_struct();
             obj.solver = casadi.nlpsol(obj.solver_name, plugin, casadi_nlp, casadi_options);
@@ -153,6 +155,12 @@ classdef Problem < handle &...
             cp.p = copy(obj.p);
             cp.p.problem = cp;
             cp.f = obj.f;
+        end
+
+        function finalize_assignments(obj)
+            obj.w.apply_queued_assignments;
+            obj.g.apply_queued_assignments;
+            obj.p.apply_queued_assignments;
         end
     end
 end

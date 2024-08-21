@@ -11,6 +11,9 @@ classdef Variable < handle &...
 
         % :class:`vdx.Vector` that this :class:`vdx.Variable` is a member of.
         vector
+
+        % name of this variable
+        name
     end
 
     properties (Hidden, SetAccess=private)
@@ -25,9 +28,10 @@ classdef Variable < handle &...
     end
 
     methods(Access=public)
-        function obj = Variable(vector)
+        function obj = Variable(vector, name)
             obj.indices = cell(0,1);
             obj.vector = vector;
+            obj.name = name;
         end
         
         function out = cat(dim,varargin)
@@ -45,10 +49,10 @@ classdef Variable < handle &...
         end
 
         function output = to_string(obj, varargin)
-            % Pretty prints this variable with the specified columns.
-            %
-            % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
-            % Default outputs all columns.
+        % Pretty prints this variable with the specified columns.
+        %
+        % Available columns are: 'sym', 'lb', 'ub', 'init', 'res', and 'mult', which are passed as string arguments to this method.
+        % Default outputs all columns.
 
             printed_cols = [];
             % Calculate which cols to print.
@@ -211,7 +215,7 @@ classdef Variable < handle &...
                 elseif is_index_logical_array(index_op(1).Indices) % A boolean array representing where variables should be created
                     error('indexing via logical array not yet supported')
                 else % Assume we want to assign multiple values
-                    if true && iscell(arg{1}) && ischar(arg{1}{1}) % Fast variable creation sacrificing naming
+                    if false && iscell(arg{1}) && ischar(arg{1}{1}) % Fast variable creation sacrificing naming
                         inorderlst = all_combinations(index_op.Indices{:});
                         n_args = size(inorderlst, 1);
                         n_var = arg{1}{2};
@@ -242,6 +246,7 @@ classdef Variable < handle &...
                 end
             else
                 if index_op(2).Type == 'Dot'
+                    obj.vector.apply_queued_assignments();
                     if is_index_scalar(index_op(1).Indices)
                         if ~ismember(index_op(2).Name, [obj.vector.numerical_properties])
                             % TODO(@anton) better error

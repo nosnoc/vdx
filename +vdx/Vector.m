@@ -20,6 +20,12 @@ classdef Vector < handle &...
     properties (Access=private)
         % Internal struct of index tracking variables
         variables struct
+
+        % Assignment queue
+        pending_assignments
+
+        % current length with pending assignements
+        len
     end
 
     properties (Access=protected)
@@ -65,6 +71,7 @@ classdef Vector < handle &...
             obj.variables = struct;
             obj.numerical_vectors = struct;
             obj.casadi_type = p.Results.casadi_type;
+            obj.len = 0;
 
             % Populate defaults
             for name=obj.numerical_properties
@@ -90,6 +97,7 @@ classdef Vector < handle &...
         end
 
         function output = to_string(obj, varargin)
+            obj.apply_queued_assignments();
             printed_cols = [];
             % Calculate which cols to print.
             if isempty(varargin)
@@ -134,6 +142,7 @@ classdef Vector < handle &...
         % Sorts this vector so that the vectors occur in column major order with lower dimensional :class:`vdx.Variable`
         % always occuring before higher dimensional :class:`vdx.Variable`. This can be useful to recover any sparsity structure in the 
         % problem that comes from the structure of constaraints and variables.
+            obj.apply_queued_assignments();
             vars = fieldnames(obj.variables);
             % get depth
             lengths = 1;
@@ -260,6 +269,7 @@ classdef Vector < handle &...
         end
 
         function json = jsonencode(obj, varargin)
+            obj.apply_queued_assignments();
             idx_struct = struct();
 
             names = fields(obj.variables);
@@ -270,10 +280,28 @@ classdef Vector < handle &...
             
             json = jsonencode(idx_struct, varargin{:});
         end
+
+        function apply_queued_assignments(obj)
+            if isempty(obj.pending_assignments)
+                return
+            end
+            obj.sym = vertcat(obj.sym, obj.pending_assignments.syms);
+
+            for name=obj.numerical_properties
+                obj.numerical_vectors.(name) = vertcat(obj.numerical_vectors.(name), obj.pending_assignments.(name));
+            end
+
+            for name=obj.numerical_outputs
+                obj.numerical_vectors.(name) = vertcat(obj.numerical_vectors.(name), obj.pending_assignments.(name));
+            end
+
+            obj.pending_assignments = [];
+        end
     end
     
     methods (Access=protected)
         function varargout = dotReference(obj,index_op)
+            obj.apply_queued_assignments();
             name = index_op(1).Name;
             % first try numerical vectors
             if ismember(name,[obj.numerical_properties, obj.numerical_outputs])
@@ -309,12 +337,13 @@ classdef Vector < handle &...
             name = index_op(1).Name;
             % first try numerical vectors
             if ismember(name,[obj.numerical_properties, obj.numerical_outputs])
+                obj.apply_queued_assignments();
                 obj.numerical_vectors.(index_op) = varargin{1};
                 return
             end
             if isscalar(index_op)
                 if ~isfield(obj.variables,name) % Workaround for scalar variables because matlab throws a fit if you try x() = 1;
-                    var = vdx.Variable(obj);
+                    var = vdx.Variable(obj, name);
                     obj.variables.(name) = var;
                     P = obj.addprop(name);
                     obj.(name) = var;
@@ -334,7 +363,7 @@ classdef Vector < handle &...
                 end
             end
             if ~isfield(obj.variables,name)
-                var = vdx.Variable(obj);
+                var = vdx.Variable(obj, name);
                 obj.variables.(name) = var;
                 P = obj.addprop(name);
                 obj.(name) = var;
@@ -405,7 +434,7 @@ classdef Vector < handle &...
             symbolic = p.Results.symbolic;
             numeric_vals = struct;
             for name=obj.numerical_properties
-                numeric_vals.(name) = p.Results.(name);
+                astruct.(name) = p.Results.(name);
             end
 
             % Check that symbolic is valid
@@ -422,32 +451,33 @@ classdef Vector < handle &...
             n = size(symbolic, 1);
             for name=obj.numerical_properties
                 if length(p.Results.(name)) == 1
-                    numeric_vals.(name) = numeric_vals.(name) * ones(n,1);
+                    astruct.(name) = astruct.(name) * ones(n,1);
                 end
             end
             
             lens = [size(symbolic,1)];
             for name=obj.numerical_properties
-                lens = [lens, size(numeric_vals.(name), 1)];
+                lens = [lens, size(astruct.(name), 1)];
             end
             if ~all(lens == lens(1))
                 % TODO(@anton) better error message
                 error("mismatched dims")
             end
 
-            n_sym = size(obj.sym, 1);
-
-            obj.sym = vertcat(obj.sym, symbolic);
-            for name=obj.numerical_properties
-                obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); numeric_vals.(name)];
-            end
-
-            % initialize results and multipliers to zero
-            % TODO(@anton) is there a better descision than this?
             for name=obj.numerical_outputs
-                obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); zeros(n,1)];
+                astruct.(name) = zeros(n,1);
             end
+
+            n_sym = obj.len;
+
             indices = (n_sym+1):(n_sym+n);
+            obj.len = obj.len + n;
+            astruct.syms = symbolic;
+            if isempty(obj.pending_assignments)
+                obj.pending_assignments = astruct;
+            else
+                obj.pending_assignments(end+1) = astruct;
+            end
         end
 
         function indices = add_variable_fast(obj, n_args, symbolic, varargin)
@@ -506,6 +536,7 @@ classdef Vector < handle &...
             % initialize results and multipliers to zero
             % TODO(@anton) is there a better descision than this?
             for name=obj.numerical_outputs
+                numerics.(name) = zeros(n,1);
                 obj.numerical_vectors.(name) = [obj.numerical_vectors.(name); zeros(n,1)];
             end
             indices = (n_sym+1):(n_sym+n);

@@ -141,5 +141,13 @@ classdef Mpcc < vdx.Problem
             cp.p.problem = cp;
             cp.f = obj.f;
         end
+
+        function finalize_assignments(obj)
+            obj.w.apply_queued_assignments;
+            obj.g.apply_queued_assignments;
+            obj.p.apply_queued_assignments;
+            obj.G.apply_queued_assignments;
+            obj.H.apply_queued_assignments;
+        end
     end
 end
