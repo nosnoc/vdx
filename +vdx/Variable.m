@@ -108,6 +108,7 @@ classdef Variable < handle &...
 
     methods (Access=protected)
         function varargout = dotReference(obj,index_op)
+            obj.vector.apply_queued_assignments();
             name = index_op(1).Name;
             if ~ismember(name,[obj.vector.numerical_properties, obj.vector.numerical_outputs])
                 error(['numerical vector ' char(name) ' is does not exist for this vector'])
@@ -131,6 +132,7 @@ classdef Variable < handle &...
         end
         
         function varargout = parenReference(obj, index_op)
+            obj.vector.apply_queued_assignments();
             if obj.depth ~= length(index_op(1).Indices)
                 err.message = sprintf(['You are subscripting a variable using ' num2str(length(index_op(1).Indices)) ' subscripts but this variable expects ' num2str(obj.depth) ' subscripts.']);
                 err.identifier = 'vdx:indexing:incorrect_num_of_subscripts';
