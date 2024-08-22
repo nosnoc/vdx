@@ -15,6 +15,9 @@ classdef Vector < handle &...
         
         % Casadi type
         casadi_type
+
+        % pointer to parent problem
+        problem
     end
     
     properties (Access=private)
@@ -26,11 +29,6 @@ classdef Vector < handle &...
 
         % current length with pending assignements
         len
-    end
-
-    properties (Access=protected)
-        % pointer to parent problem
-        problem
     end
 
     properties (Access={?vdx.Variable,?vdx.Vector})
@@ -297,6 +295,14 @@ classdef Vector < handle &...
 
             obj.pending_assignments = [];
         end
+
+        function vars = get_vars(obj)
+            vars = struct2cell(obj.variables);
+        end
+
+        function vars = get_var_names(obj)
+            vars = fieldnames(obj.variables);
+        end
     end
     
     methods (Access=protected)
@@ -383,8 +389,6 @@ classdef Vector < handle &...
             for ii=1:length(var_names)
                 cp.variables.(var_names{ii}) = copy(obj.variables.(var_names{ii}));
                 cp.variables.(var_names{ii}).vector = cp;
-                % Solver needs to be cleared.
-                cp.variables.(var_names{ii}).solver = [];
             end
         end
 
