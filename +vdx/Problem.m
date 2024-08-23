@@ -142,6 +142,12 @@ classdef Problem < handle &...
             fprintf(hline);
             print_casadi_vector(obj.f);
         end
+
+        function finalize_assignments(obj)
+            obj.w.apply_queued_assignments;
+            obj.g.apply_queued_assignments;
+            obj.p.apply_queued_assignments;
+        end
     end
     
     methods (Access=protected)
@@ -155,12 +161,6 @@ classdef Problem < handle &...
             cp.p = copy(obj.p);
             cp.p.problem = cp;
             cp.f = obj.f;
-        end
-
-        function finalize_assignments(obj)
-            obj.w.apply_queued_assignments;
-            obj.g.apply_queued_assignments;
-            obj.p.apply_queued_assignments;
         end
     end
 end

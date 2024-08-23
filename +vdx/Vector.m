@@ -136,7 +136,7 @@ classdef Vector < handle &...
             output = [header output];
         end
 
-        function sort_by_index(obj)
+        function order_indices = sort_by_index(obj)
         % Sorts this vector so that the vectors occur in column major order with lower dimensional :class:`vdx.Variable`
         % always occuring before higher dimensional :class:`vdx.Variable`. This can be useful to recover any sparsity structure in the 
         % problem that comes from the structure of constaraints and variables.
