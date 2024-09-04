@@ -113,6 +113,7 @@ classdef Mpcc < vdx.Problem
         end
 
         function json = jsonencode(obj, varargin)
+            obj.finalize_assignments();
             idx_struct = struct();
 
             idx_struct.w = obj.w;
@@ -120,6 +121,9 @@ classdef Mpcc < vdx.Problem
             idx_struct.p = obj.p;
             idx_struct.G = obj.G;
             idx_struct.H = obj.H;
+
+            f_fun = casadi.Function('f', {obj.w.sym, obj.p.sym}, {obj.f});
+            idx_struct.f = f_fun.serialize;
             
             json = jsonencode(idx_struct, varargin{:});
         end
@@ -130,6 +134,26 @@ classdef Mpcc < vdx.Problem
             obj.p.apply_queued_assignments;
             obj.G.apply_queued_assignments;
             obj.H.apply_queued_assignments;
+        end
+    end
+
+    methods(Static)
+        function mpcc = from_json(txt)
+            mpcc_struct = jsondecode(txt);
+            mpcc = vdx.problems.Mpcc();
+            mpcc.w = vdx.PrimalVector.from_json(mpcc_struct.w);
+            mpcc.w.problem = mpcc;
+            mpcc.p = vdx.ParameterVector.from_json(mpcc_struct.p);
+            mpcc.p.problem = mpcc;
+            mpcc.g = vdx.ConstraintVector.from_json(mpcc_struct.g, mpcc);
+            mpcc.g.problem = mpcc;
+            mpcc.G = vdx.ConstraintVector.from_json(mpcc_struct.G, mpcc);
+            mpcc.G.problem = mpcc;
+            mpcc.H = vdx.ConstraintVector.from_json(mpcc_struct.H, mpcc);
+            mpcc.H.problem = mpcc;
+
+            f_fun = casadi.Function.deserialize(mpcc_struct.f);
+            mpcc.f = f_fun(mpcc.w.sym, mpcc.p.sym);
         end
     end
 

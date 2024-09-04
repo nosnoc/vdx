@@ -20,7 +20,7 @@ classdef Vector < handle &...
         problem
     end
     
-    properties (Access=private)
+    properties (Access=protected)
         % Internal struct of index tracking variables
         variables struct
 
@@ -264,19 +264,6 @@ classdef Vector < handle &...
 
         function has = has_var(obj, name)
             has = isfield(obj.variables, char(name));
-        end
-
-        function json = jsonencode(obj, varargin)
-            obj.apply_queued_assignments();
-            idx_struct = struct();
-
-            names = fields(obj.variables);
-            for ii=1:numel(names)
-                name = names{ii};
-                idx_struct.(name) = obj.variables.(name).indices;
-            end
-            
-            json = jsonencode(idx_struct, varargin{:});
         end
 
         function apply_queued_assignments(obj)

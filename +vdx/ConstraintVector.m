@@ -24,8 +24,54 @@ classdef ConstraintVector < vdx.Vector
         function obj = ConstraintVector(problem, varargin)
             obj = obj@vdx.Vector(problem, varargin{:});
         end
+
+        function json = jsonencode(obj, varargin)
+            obj.apply_queued_assignments();
+            vec_struct = struct();
+
+            names = fields(obj.variables);
+            for ii=1:numel(names)
+                name = names{ii};
+                vec_struct.variables.(name) = obj.variables.(name);
+            end
+
+            fun = casadi.Function('foo', {obj.problem.w.sym, obj.problem.p.sym}, {obj.sym});
+            
+            vec_struct.sym = fun.serialize;
+            vec_struct.casadi_type = obj.casadi_type;
+            vec_struct.len = obj.len;
+            vec_struct.numerical_defaults = obj.numerical_defaults;
+            vec_struct.numerical_vectors.lb = obj.numerical_vectors.lb;
+            vec_struct.numerical_vectors.ub = obj.numerical_vectors.ub;
+            vec_struct.numerical_vectors.init_mult = obj.numerical_vectors.init_mult;
+            vec_struct.numerical_vectors.eval = obj.numerical_vectors.eval;
+            vec_struct.numerical_vectors.violation = obj.numerical_vectors.violation;
+            vec_struct.numerical_vectors.mult = obj.numerical_vectors.mult;
+            
+            json = jsonencode(vec_struct, varargin{:});
+        end
     end
 
+    methods(Static)
+        function vec = from_json(vec_struct, problem)
+            vec = vdx.ConstraintVector([]);
+            vec.casadi_type = vec_struct.casadi_type;
+            vec.len = vec_struct.len;
+            vec.numerical_defaults = vec_struct.numerical_defaults;
+            vec.numerical_vectors = vec_struct.numerical_vectors;
+
+            fun = casadi.Function.deserialize(vec_struct.sym);
+            vec.sym = fun(problem.w.sym, problem.p.sym);
+
+            names = fields(vec_struct.variables);
+            for ii=1:numel(names)
+                name = names{ii};
+                obj.variables.(name) = vdx.Variable.from_json(vec_struct.variables.(name));
+                obj.variables.(name).vector = vec;
+            end
+        end
+    end
+    
     methods (Access={?vdx.Variable, ?vdx.VariableGroup, ?vdx.ConstraintVector})
         function indices = add_variable(obj, indices, symbolic, varargin)
             import casadi.*

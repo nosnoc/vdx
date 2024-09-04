@@ -104,8 +104,34 @@ classdef Variable < handle &...
             fprintf(output);
             dummy = [];
         end
+
+        function json = jsonencode(obj, varargin)
+            obj.vector.apply_queued_assignments();
+            var_struct = struct();
+
+            var_struct.name = obj.name;
+            var_struct.indices = obj.indices;
+            var_struct.ind_shape = size(obj.indices);
+            var_struct.depth = obj.depth;
+            var_struct.reorder_to_end = obj.reorder_to_end;
+            
+            json = jsonencode(var_struct, varargin{:});
+        end
     end
 
+    methods (Static)
+        function var = from_json(var_struct)
+            var = vdx.Variable([],"");
+            if ~iscell(var_struct.indices)
+                var_struct.indices = {var_struct.indices};
+            end
+            var.indices = reshape(var_struct.indices, var_struct.ind_shape');
+            var.name = var_struct.name;
+            var.depth = var_struct.depth;
+            var.reorder_to_end = var_struct.reorder_to_end;
+        end
+    end
+    
     methods (Access=protected)
         function varargout = dotReference(obj,index_op)
             obj.vector.apply_queued_assignments();
