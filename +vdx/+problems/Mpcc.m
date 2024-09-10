@@ -128,6 +128,26 @@ classdef Mpcc < vdx.Problem
             json = jsonencode(idx_struct, varargin{:});
         end
 
+        function json = to_casadi_json(obj)
+            obj.finalize_assignments();
+            mpcc_struct = obj.to_casadi_struct();
+
+            json_struct.w = mpcc_struct.x.serialize();
+            json_struct.lbw = obj.w.lb;
+            json_struct.ubw = obj.w.ub;
+            json_struct.w0 = obj.w.init;
+            json_struct.p = mpcc_struct.p.serialize();
+            json_struct.p0 = obj.p.val;
+            json_struct.g_fun = casadi.Function('g', {mpcc_struct.x,mpcc_struct.p}, {mpcc_struct.g}).serialize();
+            json_struct.lbw = obj.g.lb;
+            json_struct.ubw = obj.g.ub;
+            json_struct.G_fun = casadi.Function('G', {mpcc_struct.x,mpcc_struct.p}, {mpcc_struct.G}).serialize();
+            json_struct.H_fun = casadi.Function('H', {mpcc_struct.x,mpcc_struct.p}, {mpcc_struct.H}).serialize();
+            json_struct.f = casadi.Function('f', {mpcc_struct.x,mpcc_struct.p}, {mpcc_struct.f}).serialize();
+
+            json = jsonencode(json_struct, "ConvertInfAndNaN", false, "PrettyPrint", true);
+        end
+
         function finalize_assignments(obj)
             obj.w.apply_queued_assignments;
             obj.g.apply_queued_assignments;

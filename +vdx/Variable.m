@@ -110,7 +110,7 @@ classdef Variable < handle &...
             var_struct = struct();
 
             var_struct.name = obj.name;
-            var_struct.indices = obj.indices;
+            var_struct.indices = permute(obj.indices, ndims(obj.indices):-1:1);
             var_struct.ind_shape = size(obj.indices);
             var_struct.depth = obj.depth;
             var_struct.reorder_to_end = obj.reorder_to_end;
