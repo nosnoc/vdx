@@ -7,12 +7,13 @@ classdef Vector < handle &...
 %
 % :param vdx.Problem problem: Problem which this vector is a member of.
 % :param string casadi_type: either 'SX' (default) or 'MX' which determines the kind of CasADi symbolic stored.
-    properties (Access=public)
+    properties (Access=public, GetObservable)
         % CasADi symbolic vector that is wrapped by this object.
         %
         %:type: casadi.SX|casadi.MX
         sym
-        
+    end
+    properties (Access=public)
         % Casadi type
         casadi_type
 
@@ -23,7 +24,7 @@ classdef Vector < handle &...
     properties (Access=protected)
         % Internal struct of index tracking variables
         variables struct
-
+        
         % Assignment queue
         pending_assignments
 
@@ -31,7 +32,7 @@ classdef Vector < handle &...
         len
     end
 
-    properties (Access={?vdx.Variable,?vdx.Vector})
+    properties (Access={?vdx.Variable,?vdx.Vector}, GetObservable)
          % internal struct of numerical data associated with this
         numerical_vectors struct
     end
@@ -46,6 +47,11 @@ classdef Vector < handle &...
         numerical_outputs
         allow_nonscalar_symbolics
         allow_nonsymbolic_assignment
+    end
+
+    properties (Access=private)
+        lh_sym
+        lh_nv
     end
 
     methods (Access=public)
@@ -83,6 +89,9 @@ classdef Vector < handle &...
             for name=obj.numerical_outputs
                 obj.numerical_vectors.(name) = [];
             end
+
+            obj.lh_sym = addlistener(obj,'sym','PreGet',@obj.finalize_on_get);
+            obj.lh_nv = addlistener(obj,'numerical_vectors','PreGet',@obj.finalize_on_get);
         end
 
         function print(obj, varargin)
@@ -95,7 +104,7 @@ classdef Vector < handle &...
         end
 
         function output = to_string(obj, varargin)
-            obj.apply_queued_assignments();
+        % obj.apply_queued_assignments();
             printed_cols = [];
             % Calculate which cols to print.
             if isempty(varargin)
@@ -267,6 +276,8 @@ classdef Vector < handle &...
         end
 
         function apply_queued_assignments(obj)
+            obj.lh_sym.Enabled = false;
+            obj.lh_nv.Enabled = false;
             if isempty(obj.pending_assignments)
                 return
             end
@@ -281,6 +292,8 @@ classdef Vector < handle &...
             end
 
             obj.pending_assignments = [];
+            obj.lh_sym.Enabled = true;
+            obj.lh_nv.Enabled = true;
         end
 
         function vars = get_vars(obj)
@@ -407,6 +420,10 @@ classdef Vector < handle &...
             disp(header)
             propgroup = getPropertyGroups(obj);
             matlab.mixin.CustomDisplay.displayPropertyGroups(obj,propgroup)
+        end
+
+        function finalize_on_get(obj, src, event)
+            event.AffectedObject.apply_queued_assignments();
         end
     end
 
