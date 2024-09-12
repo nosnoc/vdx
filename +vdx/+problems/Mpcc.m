@@ -70,6 +70,18 @@ classdef Mpcc < vdx.Problem
             mpcc_struct.f = obj.f;
         end
 
+        function init_struct = to_solver_initialization(obj)
+            init_struct = struct;
+            init_struct.x0 = obj.w.init;
+            init_struct.lbx = obj.w.lb;
+            init_struct.ubx = obj.w.ub;
+            init_struct.lam_x0 = obj.w.init_mult;
+            init_struct.lbg = obj.g.lb;
+            init_struct.ubg = obj.g.ub;
+            init_struct.lam_g0 = obj.g.init_mult;
+            init_struct.p0 = obj.p.val;
+        end
+
         function print(obj, varargin)
             w_out = obj.w.to_string(varargin{:});
             p_out = obj.p.to_string(varargin{:});
