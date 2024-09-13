@@ -123,10 +123,11 @@ classdef Variable < handle &...
         function var = from_json(var_struct)
             var = vdx.Variable([],"");
             if ~iscell(var_struct.indices)
-                var_struct.indices = {var_struct.indices};
+                var_struct.indices = {var_struct.indices'};
             end
             var.indices = reshape(var_struct.indices, flip(var_struct.ind_shape'));
             var.indices = permute(var.indices, ndims(var.indices):-1:1);
+            var.indices = cellfun(@(x) x', var.indices, 'uni', false);
             var.name = var_struct.name;
             var.depth = var_struct.depth;
             var.reorder_to_end = var_struct.reorder_to_end;

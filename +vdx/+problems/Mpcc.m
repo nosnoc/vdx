@@ -22,7 +22,7 @@ classdef Mpcc < vdx.Problem
             
             % TODO(@anton) figure out if we want to create a standard repository for mpcc solvers or if they should live in nosnoc.
             %              My current thought is to move it out so we don't have circular dependency here. (alternatively move this into nosnoc?)
-            obj.solver = nosnoc.solver.mpccsol('Mpcc solver', plugin, obj.to_casadi_struct(), options);
+            obj.solver = nosnoc.solver.mpccsol('Mpcc solver', plugin, obj, options);
         end
 
         function stats = solve(obj)
