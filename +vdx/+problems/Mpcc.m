@@ -167,6 +167,49 @@ classdef Mpcc < vdx.Problem
             obj.G.apply_queued_assignments;
             obj.H.apply_queued_assignments;
         end
+
+        function [bnlp, solver_initialization] = generate_bnlp_for_active_set(obj, I1, I2)
+            import casadi.*
+            % TODO: might be worth using vdx to maintain order for the bnlp but that may be too expensive
+            % bnlp = vdx.Problem();
+            
+            % build nlp:
+            w = obj.w.sym; lbw = obj.w.lb; ubw = obj.w.ub;
+            g = obj.g.sym; lbg = obj.g.lb; ubg = obj.g.ub;
+            p = obj.p.sym; p_val = obj.p.val;
+
+            G = obj.G.sym; lbG = zeros(size(G)); ubG = inf*ones(size(G));
+            H = obj.H.sym; lbH = zeros(size(H)); ubH = inf*ones(size(H));
+
+            lift_G = SX.sym('lift_G', size(G));
+            lift_H = SX.sym('lift_H', size(H));
+
+            ubG(I1) = 0;
+            ubH(I2) = 0;
+            g = [g;lift_G - G;lift_H - H]; lbg = [lbg;zeros(size(G));zeros(size(H))]; ubg = [ubg;zeros(size(G));zeros(size(H))];
+            w = [w;lift_G;lift_H]; lbw = [lbw;lbG;lbH]; ubw = [ubw;ubG;ubH];
+            
+            bnlp.x = w;
+            bnlp.g = g;
+            bnlp.p = p;
+            bnlp.f = obj.f;
+
+            solver_initialization.lbx = lbw;
+            solver_initialization.ubx = ubw;
+            solver_initialization.x0 = [obj.w.res;obj.G.eval;obj.H.eval];
+            solver_initialization.lbg = lbg;
+            solver_initialization.ubg = ubg;
+            solver_initialization.p = p_val;
+        end
+
+        function [I1, I2] = extract_active_set_from_result(obj, tol)
+            arguments
+                obj
+                tol=1e-4;
+            end
+            I1 = find(obj.G.eval <= tol);
+            I2 = find(obj.G.eval > tol);
+        end
     end
 
     methods(Static)
