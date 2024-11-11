@@ -351,6 +351,10 @@ classdef Vector < handle &...
                 if ~isfield(obj.variables,name) % Workaround for scalar variables because matlab throws a fit if you try x() = 1;
                     var = vdx.Variable(obj, name);
                     obj.variables.(name) = var;
+
+                    % WARNING: The behavior of dynamic props changed between 2023a and 2023b
+                    %          Now dynamicprops override dotReference. This is undocumented behavior in matlab.
+                    %          This hack to provide tab-completion is also the root cause of the matlab bug in 2024b.
                     P = obj.addprop(name);
                     obj.(name) = var;
                     var(vdx.constants.scalar{:}) = varargin{1};
@@ -371,6 +375,10 @@ classdef Vector < handle &...
             if ~isfield(obj.variables,name)
                 var = vdx.Variable(obj, name);
                 obj.variables.(name) = var;
+
+                % WARNING: The behavior of dynamic props changed between 2023a and 2023b
+                %          Now dynamicprops override dotReference. This is undocumented behavior in matlab.
+                %          This hack to provide tab-completion is also the root cause of the matlab bug in 2024b.
                 P = obj.addprop(name);
                 obj.(name) = var;
             end
