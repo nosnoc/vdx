@@ -38,14 +38,34 @@ classdef Mpcc < vdx.Problem
                 %warning("failed to converge")
             end
             obj.w.res = full(mpcc_results.x);
-            obj.w.mult = full(mpcc_results.lam_x);
-            obj.g.eval = full(mpcc_results.g);
-            obj.g.mult = full(mpcc_results.lam_g);
+            try
+                obj.w.mult = full(mpcc_results.lam_x);
+            catch
+                obj.w.mult = nan(size(obj.w.res));
+            end
+            try
+                obj.g.eval = full(mpcc_results.g);
+            catch
+                obj.g.eval = nan(size(obj.g.sym));
+            end
+            try
+                obj.g.mult = full(mpcc_results.lam_g);
+            catch
+                obj.g.mult = nan(size(obj.g.sym));
+            end
             % TODO(@anton) can we figure out parameter multipliers correctly from homotopy?
-            %obj.p.mult = full(mpcc_results.lam_p);
+            %obj.p.mult = full(mpcc_results.lam_p)
             obj.f_result = full(mpcc_results.f);
-            obj.G.eval = full(mpcc_results.G);
-            obj.H.eval = full(mpcc_results.H);
+            try
+                obj.G.eval = full(mpcc_results.G);
+            catch
+                obj.G.eval = nan(size(obj.G.sym));
+            end
+            try
+                obj.H.eval = full(mpcc_results.H);
+            catch
+                obj.H.eval = nan(size(obj.H.sym));
+            end
             % TODO(@anton) multipliers for G and H
 
             % Calculate violations:
