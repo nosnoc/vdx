@@ -171,8 +171,8 @@ classdef Mpcc < vdx.Problem
             json_struct.p = mpcc_struct.p.serialize();
             json_struct.p0 = obj.p.val;
             json_struct.g_fun = casadi.Function('g', {mpcc_struct.x,mpcc_struct.p}, {mpcc_struct.g}).serialize();
-            json_struct.lbw = obj.g.lb;
-            json_struct.ubw = obj.g.ub;
+            json_struct.lbg = obj.g.lb;
+            json_struct.ubg = obj.g.ub;
             json_struct.G_fun = casadi.Function('G', {mpcc_struct.x,mpcc_struct.p}, {mpcc_struct.G}).serialize();
             json_struct.H_fun = casadi.Function('H', {mpcc_struct.x,mpcc_struct.p}, {mpcc_struct.H}).serialize();
             json_struct.f = casadi.Function('f', {mpcc_struct.x,mpcc_struct.p}, {mpcc_struct.f}).serialize();
