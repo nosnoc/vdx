@@ -25,7 +25,13 @@ classdef Mpcc < vdx.Problem
             obj.solver = nosnoc.solver.mpccsol('Mpcc solver', plugin, obj, options);
         end
 
-        function stats = solve(obj)
+        function stats = solve(obj,params)
+            arguments
+                obj
+                params.IG = []
+                params.IH = []
+            end
+            y0 = params.IH;
             mpcc_results = obj.solver('x0', obj.w.init,...
                 'lbx', obj.w.lb,...
                 'ubx', obj.w.ub,...
@@ -33,7 +39,8 @@ classdef Mpcc < vdx.Problem
                 'ubg', obj.g.ub,...
                 'lam_g0', obj.g.init_mult,...% TODO(@anton) perhaps we use init instead of mult.
                 'lam_x0', obj.w.init_mult,...
-                'p', obj.p.val);
+                'p', obj.p.val,...
+                'y0', y0);% TODO(@anton) I actually hate this y0 interface :(
             if ~obj.solver.stats.success
                 %warning("failed to converge")
             end
