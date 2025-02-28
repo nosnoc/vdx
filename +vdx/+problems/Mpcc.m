@@ -15,7 +15,7 @@ classdef Mpcc < vdx.Problem
 
         function create_solver(obj, options, plugin)
             if ~exist('plugin')
-                plugin = 'scholtes_ineq';
+                plugin = 'reg_homotopy';
             end
 
             %mpcc_struct = obj.to_casadi_struct();
