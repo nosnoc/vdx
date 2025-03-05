@@ -610,6 +610,17 @@ classdef Vector < handle &...
             end
         end
     end
+
+    methods (Static)
+        function obj = loadobj(obj)
+            if isstruct(obj)
+                error('something is wrong here');
+            else
+                obj.lh_sym = addlistener(obj,'sym','PreGet',@obj.finalize_on_get);
+                obj.lh_nv = addlistener(obj,'numerical_vectors','PreGet',@obj.finalize_on_get);
+            end
+        end
+    end
 end
 
 function res = is_index_scalar(index)
