@@ -278,12 +278,16 @@ classdef Variable < handle &...
                 if index_op(2).Type == 'Dot'
                     obj.vector.apply_queued_assignments();
                     if is_index_scalar(index_op(1).Indices)
-                        if ~ismember(index_op(2).Name, [obj.vector.numerical_properties])
+                        if ~ismember(index_op(2).Name, [obj.vector.numerical_properties, "sym"])
                             % TODO(@anton) better error
                             error('Attempt to assign to unsupported property for this vector type')
                         end
                         adj_ind = index_adjustment(index_op(1).Indices);
-                        obj.vector.numerical_vectors.(index_op(2).Name)(obj.indices{adj_ind{:}}) = varargin{1};
+                        if index_op(2).Name == "sym"
+                            obj.vector.sym(obj.indices{adj_ind{:}}) = varargin{1};
+                        else
+                            obj.vector.numerical_vectors.(index_op(2).Name)(obj.indices{adj_ind{:}}) = varargin{1};
+                        end
                     else
                         % TODO (@anton) preempt wrong size with a good error
                         % TODO (@anton) allow for structured right hand side
