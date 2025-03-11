@@ -311,7 +311,12 @@ classdef Vector < handle &...
             name = index_op(1).Name;
             % first try numerical vectors
             if ismember(name,[obj.numerical_properties, obj.numerical_outputs])
-                varargout{1} = obj.numerical_vectors.(name);
+                vec = obj.numerical_vectors.(name);
+                if ~isscalar(index_op)
+                    varargout{1} = vec.(index_op(2:end));
+                else
+                    varargout{1} = vec;
+                end
                 return
             end
             if ~isfield(obj.variables, name)
