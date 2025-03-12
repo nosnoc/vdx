@@ -337,7 +337,7 @@ classdef Vector < handle &...
                 warning('off', 'backtrace')
                 warning('off', 'verbose')
             end
-            varargout{1} = obj.variables.(index_op);
+            varargout = {obj.variables.(index_op)};
         end
 
         function obj = dotAssign(obj,index_op,varargin)
@@ -391,7 +391,18 @@ classdef Vector < handle &...
         end
         
         function n = dotListLength(obj,index_op,indexContext)
-            n=1;
+            if length(index_op) == 3 && index_op(2).Type == 'Dot' && index_op(2).Name == 'indices'
+                name = index_op(1).Name;
+
+                if ~isfield(obj.variables, name)
+                    n = 1;
+                else
+                    n = length({obj.variables.(index_op)});
+                end
+                
+            else
+                n=1;
+            end
         end
 
         function cp = copyElement(obj)
