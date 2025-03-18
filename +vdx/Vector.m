@@ -408,6 +408,7 @@ classdef Vector < handle &...
         function cp = copyElement(obj)
             cp = copyElement@matlab.mixin.Copyable(obj);
 
+            cp.sym = vertcat(obj.sym);
             % deepcopy variables
             var_names = fieldnames(obj.variables);
             for ii=1:length(var_names)
