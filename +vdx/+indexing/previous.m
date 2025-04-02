@@ -11,7 +11,11 @@ function out_indices = previous(indices, variable)
     for ii=1:length(inds)
         ind = inds(ii)-1;
         sub = cell(1, idx_depth);
-        [sub{:}] = ind2sub(flip(varsize), ind);
+        sz = flip(varsize);
+        if length(sz) == 1
+            sz = [sz,1];
+        end
+        [sub{:}] = ind2sub(sz, ind);
         sub = flip(sub);
         
         while(isempty(variable.indices{sub{:}}))
@@ -19,7 +23,11 @@ function out_indices = previous(indices, variable)
             if(ind < 1)
                 error("failed to find a previous value")
             end
-            [sub{:}] = ind2sub(flip(varsize), ind);
+            sz = flip(varsize);
+            if length(sz) == 1
+                sz = [sz,1];
+            end
+            [sub{:}] = ind2sub(sz, ind);
             sub = flip(sub);
             sub
             ind
