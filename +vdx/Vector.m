@@ -1,10 +1,10 @@
 classdef Vector < handle &...
         matlab.mixin.indexing.RedefinesDot &...
         matlab.mixin.CustomDisplay &...
-        dynamicprops &...
         matlab.mixin.Copyable
 % A class which provides a wrapper around CasADi symbolics and tracks the indicies of :class:`vdx.Variable` within it.
 %
+% TODO(@anton) if mathworks ever fixes their bugs we can add back dynamic props.
 % :param vdx.Problem problem: Problem which this vector is a member of.
 % :param string casadi_type: either 'SX' (default) or 'MX' which determines the kind of CasADi symbolic stored.
     properties (Access=public, GetObservable)
@@ -360,11 +360,11 @@ classdef Vector < handle &...
                     % WARNING: The behavior of dynamic props changed between 2023a and 2023b
                     %          Now dynamicprops override dotReference. This is undocumented behavior in matlab.
                     %          This hack to provide tab-completion is also the root cause of the matlab bug in 2024b.
-                    P = obj.addprop(name);
-                    obj.(name) = var;
+                    % P = obj.addprop(name);
+                    % obj.(name) = var;
                     var(vdx.constants.scalar{:}) = varargin{1};
                     return
-                elseif obj.variables.(indexop(1)).depth == 0; % TODO maybe this should also error.
+                elseif obj.variables.(index_op(1).Name).depth == 0; % TODO maybe this should also error.
                     var = obj.variables.(indexop(1));
                     var(vdx.constants.scalar{:}) = varargin{1};
                 else
@@ -384,8 +384,8 @@ classdef Vector < handle &...
                 % WARNING: The behavior of dynamic props changed between 2023a and 2023b
                 %          Now dynamicprops override dotReference. This is undocumented behavior in matlab.
                 %          This hack to provide tab-completion is also the root cause of the matlab bug in 2024b.
-                P = obj.addprop(name);
-                obj.(name) = var;
+                % P = obj.addprop(name);
+                % obj.(name) = var;
             end
             obj.variables.(index_op) = varargin{1};
         end
