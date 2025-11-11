@@ -501,6 +501,58 @@ classdef Mpcc < vdx.Problem
             g_mpcc_fun = Function('g_mpcc', {nlp.w.sym, nlp.p.sym}, {obj.g.sym});
             metadata.g_mpcc_fun = g_mpcc_fun;
         end
+
+        function fname = codegen(obj, fname)
+            import casadi.*
+            obj.finalize_assignments();
+            mpcc_struct = obj.to_casadi_struct();
+
+            % Generate data
+            ncon = length(mpcc_struct.g);
+            ncc = length(mpcc_struct.G);
+            ncon_aug = ncon + 2*ncc;
+            x = mpcc_struct.w;
+            p = mpcc_struct.p;
+            lam_g = SX.sym('lam_g', ncon_aug);
+            lam_f = SX.sym('lam_f', 1);
+            f = mpcc_struct.f;
+            grad_f = f.gradient(x);
+            g_aug = vertcat(mpcc_struct.g, mpcc_struct.G, mpcc_stract.H);
+            jac_g = g_aug.jacobian(x);
+            L = lam_f*f - lam_g'*g_aug;
+            [hess_L, nabla_L] = L.hessian(x);
+
+            % Generate funs
+            nlp_f = Function('nlp_f', {x, p}, {f}, {'x','p'}, {'f'});
+            nlp_grad_f = Function('nlp_grad_f', {x, p}, {f, }, {'x','p'}, {'f','grad_f'});
+            nlp_g = Function('nlp_g', {x, p}, {g_aug}, {'x','p'}, {'g'});
+            nlp_jac_g = Function('nlp_jac_g', {x, p}, {g, jac_g}, {'x', 'p'}, {'g', 'jac_g'});
+            nlp_hess_l = Function('nlp_hess_l', {x, p, lam_f, lam_g}, {hess_L}, {'x', 'g', 'lam_f', 'lam_g'});
+
+            % Generate json
+            json_struct.x0 = obj.w.init;
+            json_struct.y0 = vertcat(obj.g.init_mult, obj.G.init_mult, obj.H.init_mult);
+            json_struct.p0 = obj.p.val;
+            json_struct.lbx = obj.w.lb;
+            json_struct.ubx = obj.w.ub;
+            json_struct.lbg = vertcat(obj.g.lb, obj.G.lb, obj.H.lb);
+            json_struct.ubg = vertcat(obj.g.lb, obj.G.ub, obj.H.ub);
+            json_struct.ind_cc1 = ncon+1:ncon+ncc;
+            json_struct.ind_cc2 = ncon+ncc+1:ncon+2*ncc;
+            json = jsonencode(json_struct, "ConvertInfAndNaN", false, "PrettyPrint", true);
+            fid = fopen([fname, '.json'], "w");
+            fprintf(fid, solver_json);
+            fclose(fid)
+
+            % Generate c code
+            cg = CodeGenerator([fname,'.c']);
+            cg.add(nlp_f);
+            cg.add(nlp_g);
+            cg.add(nlp_grad_f);
+            cg.add(nlp_jac_g);
+            cg.add(nlp_hess_l);
+            cg.generate();
+        end
     end
 
     methods(Static)
