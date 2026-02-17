@@ -524,10 +524,10 @@ classdef Mpcc < vdx.Problem
 
             % Generate funs
             nlp_f = Function('nlp_f', {x, p}, {f}, {'x','p'}, {'f'});
-            nlp_grad_f = Function('nlp_grad_f', {x, p}, {f, }, {'x','p'}, {'f','grad_f'});
+            nlp_grad_f = Function('nlp_grad_f', {x, p}, {f, grad_f}, {'x','p'}, {'f','grad_f'});
             nlp_g = Function('nlp_g', {x, p}, {g_aug}, {'x','p'}, {'g'});
-            nlp_jac_g = Function('nlp_jac_g', {x, p}, {g, jac_g}, {'x', 'p'}, {'g', 'jac_g'});
-            nlp_hess_l = Function('nlp_hess_l', {x, p, lam_f, lam_g}, {hess_L}, {'x', 'g', 'lam_f', 'lam_g'});
+            nlp_jac_g = Function('nlp_jac_g', {x, p}, {g_aug, jac_g}, {'x', 'p'}, {'g', 'jac_g'});
+            nlp_hess_l = Function('nlp_hess_l', {x, p, lam_f, lam_g}, {hess_L}, {'x', 'g', 'lam_f', 'lam_g'}, {'hess_l'});
 
             % Generate json
             json_struct.x0 = obj.w.init;
@@ -541,7 +541,7 @@ classdef Mpcc < vdx.Problem
             json_struct.ind_cc2 = ncon+ncc+1:ncon+2*ncc;
             json = jsonencode(json_struct, "ConvertInfAndNaN", false, "PrettyPrint", true);
             fid = fopen([fname, '.json'], "w");
-            fprintf(fid, solver_json);
+            fprintf(fid, json);
             fclose(fid)
 
             % Generate c code
