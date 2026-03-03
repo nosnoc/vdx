@@ -74,7 +74,16 @@ classdef Mpcc < vdx.Problem
                 obj.H.eval = nan(size(obj.H.sym));
             end
             % TODO(@anton) multipliers for G and H
-
+            try
+                obj.G.mult = full(mpcc_results.lam_G);
+            catch
+                obj.G.mult = nan(size(obj.G.sym));
+            end
+            try
+                obj.H.mult = full(mpcc_results.lam_H);
+            catch
+                obj.H.mult = nan(size(obj.H.sym));
+            end
             % Calculate violations:
             w_lb_viol = max(obj.w.lb - obj.w.res, 0);
             w_ub_viol = max(obj.w.res - obj.w.ub, 0);
