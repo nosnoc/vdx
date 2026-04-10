@@ -68,8 +68,9 @@ classdef ConstraintVector < vdx.Vector
                 name = names{ii};
                 vec.variables.(name) = vdx.Variable.from_json(vec_struct.variables.(name));
                 vec.variables.(name).vector = vec;
-                vec.addprop(name);
-                vec.(name) = vec.variables.(name);
+                % Broken by mathworks
+                %vec.addprop(name);
+                %vec.(name) = vec.variables.(name);
             end
         end
     end
@@ -122,6 +123,7 @@ classdef ConstraintVector < vdx.Vector
             new_sym = {};
             new_lb = [];
             new_ub = [];
+            new_init_mult = [];
             % TODO not just SX and names
             slacks = {};
             switch relax.mode
@@ -133,6 +135,7 @@ classdef ConstraintVector < vdx.Vector
                         new_sym{ii} = [symbolic(ii)-lb(ii)-slack(1) + slack(2)];
                         new_lb = [new_lb;0];
                         new_ub = [new_ub;0];
+                        new_init_mult = [new_init_mult; numeric_vals.init_mult(ii)];
                     elseif lb(ii) >-inf & ub(ii) < inf % twosided
                         slack = SX.sym(relax.slack_name, 1);
                         slacks{ii} = slack;
@@ -140,18 +143,21 @@ classdef ConstraintVector < vdx.Vector
                             -(symbolic(ii)-ub(ii))+slack];
                         new_lb = [new_lb;0;0];
                         new_ub = [new_ub;inf;inf];
+                        new_init_mult = [new_init_mult; numeric_vals.init_mult(ii); numeric_vals.init_mult(ii)];
                     elseif lb(ii) == -inf % only ub
                         slack = SX.sym(relax.slack_name, 1);
                         slacks{ii} = slack;
                         new_sym{ii} = [-(symbolic(ii)-ub(ii))+slack];
                         new_lb = [new_lb;0];
                         new_ub = [new_ub;inf];
+                        new_init_mult = [new_init_mult; numeric_vals.init_mult(ii)];
                     else % only lb
                         slack = SX.sym(relax.slack_name, 1);
                         slacks{ii} = slack;
                         new_sym{ii} = [symbolic(ii)-lb(ii)+slack];
                         new_lb = [new_lb;0];
                         new_ub = [new_ub;inf];
+                        new_init_mult = [new_init_mult; numeric_vals.init_mult(ii)];
                     end
                 end
                 slacks = vertcat(slacks{:});
@@ -159,7 +165,7 @@ classdef ConstraintVector < vdx.Vector
                 new_sym = vertcat(new_sym{:});
                 obj.problem.f = obj.problem.f + weight*sum(slacks); % TODO weight
 
-                indices = add_variable@vdx.Vector(obj, indices, new_sym, new_lb, new_ub, numeric_vals.init_mult);
+                indices = add_variable@vdx.Vector(obj, indices, new_sym, new_lb, new_ub, new_init_mult);
               case vdx.RelaxationMode.ELL_2 % l_2
                 for ii=1:n
                         slack = SX.sym(relax.slack_name, 1);

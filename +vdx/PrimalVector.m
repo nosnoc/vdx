@@ -64,8 +64,9 @@ classdef PrimalVector < vdx.Vector
                 name = names{ii};
                 vec.variables.(name) = vdx.Variable.from_json(vec_struct.variables.(name));
                 vec.variables.(name).vector = vec;
-                vec.addprop(name);
-                vec.(name) = vec.variables.(name);
+                % broken by Mathworks.
+                %vec.addprop(name);
+                %vec.(name) = vec.variables.(name);
             end
         end
     end

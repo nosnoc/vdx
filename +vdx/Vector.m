@@ -365,7 +365,7 @@ classdef Vector < handle &...
                     var(vdx.constants.scalar{:}) = varargin{1};
                     return
                 elseif obj.variables.(index_op(1).Name).depth == 0; % TODO maybe this should also error.
-                    var = obj.variables.(indexop(1));
+                    var = obj.variables.(index_op(1));
                     var(vdx.constants.scalar{:}) = varargin{1};
                 else
                     err.message = sprintf(['Assigning directly to variable ' char(name) ' is not allowed. Include an index.\n'...
